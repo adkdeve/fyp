@@ -6,6 +6,13 @@ abstract class Routes {
   static const MAIN = _Paths.MAIN;
   static const CAMERA_FEED = _Paths.MAIN + _Paths.CAMERA_FEED;
   static const DASHBOARD = _Paths.MAIN + _Paths.DASHBOARD;
+  static const ALERTS = _Paths.MAIN + _Paths.ALERTS;
+  static const HISTORY = _Paths.MAIN + _Paths.HISTORY;
+  static const ANALYTICS = _Paths.MAIN + _Paths.ANALYTICS;
+  static const SETTINGS = _Paths.MAIN + _Paths.SETTINGS;
+  static const VIOLATION_DETAIL = _Paths.MAIN + _Paths.VIOLATION_DETAIL;
+  static const CAMERA_MANAGEMENT = _Paths.MAIN + _Paths.CAMERA_MANAGEMENT;
+  static const PROFILE = _Paths.MAIN + _Paths.PROFILE;
 }
 
 abstract class _Paths {
@@ -13,4 +20,11 @@ abstract class _Paths {
   static const MAIN = '/main';
   static const CAMERA_FEED = '/camera-feed';
   static const DASHBOARD = '/dashboard';
+  static const ALERTS = '/alerts';
+  static const HISTORY = '/history';
+  static const ANALYTICS = '/analytics';
+  static const SETTINGS = '/settings';
+  static const VIOLATION_DETAIL = '/violation-detail';
+  static const CAMERA_MANAGEMENT = '/camera-management';
+  static const PROFILE = '/profile';
 }

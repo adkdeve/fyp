@@ -1,5 +1,8 @@
+import 'package:construction_safety/app/core/core.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:intl/intl.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../controllers/dashboard_controller.dart';
 import '../widgets/live_feed_card.dart';
 
@@ -19,7 +22,7 @@ class DashboardView extends StatelessWidget {
                   clipBehavior: Clip.none,
                   children: [
                     Container(
-                      height: 280,
+                      height: 240,
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           colors: [Colors.blue.shade600, Colors.blue.shade700],
@@ -100,7 +103,7 @@ class DashboardView extends StatelessWidget {
                     ),
                     // COMPLIANT & VIOLATION CARDS overlapping header
                     Positioned(
-                      bottom: -40,
+                      bottom: -50,
                       left: 16,
                       right: 16,
                       child: Row(
@@ -139,7 +142,7 @@ class DashboardView extends StatelessWidget {
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         Icon(Icons.error, color: Colors.red.shade500),
                         const SizedBox(width: 8),
@@ -162,7 +165,7 @@ class DashboardView extends StatelessWidget {
                                 ),
                               ),
                               Text(
-                                controller.mostRecentViolation!.time,
+                                DateFormat('hh:mm a').format(controller.mostRecentViolation!.time),
                                 style: TextStyle(
                                   color: Colors.red.shade500,
                                   fontSize: 10,
@@ -181,10 +184,16 @@ class DashboardView extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        "Live Camera Feeds",
-                        style: TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.w600),
+                      Row(
+                        children: [
+                          Icon(LucideIcons.video, size: 18),
+                          5.sbw,
+                          const Text(
+                            "Live Camera Feeds",
+                            style: TextStyle(
+                                fontSize: 16, fontWeight: FontWeight.w600),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 12),
                       Column(

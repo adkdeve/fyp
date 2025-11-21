@@ -1,5 +1,3 @@
-import 'package:get/get.dart';
-
 enum AppTab { home, explore, application, heart, profile }
 
 typedef TabFetchFn = Future<void> Function({bool force});

@@ -61,12 +61,12 @@ class AppThemeData {
   void applySystemUIOverlayStyle(ThemeMode themeMode) {
     if (isDarkMode = WidgetsBinding.instance.window.platformBrightness == Brightness.dark) {
       SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle.dark.copyWith(
-        statusBarColor: color600, // Status bar color for dark theme
+        statusBarColor: Colors.blue.shade700, // Status bar color for dark theme
         statusBarIconBrightness: Brightness.light, // Light icons for dark theme
       ));
     } else {
       SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle.light.copyWith(
-        statusBarColor: color200, // Status bar color for light theme
+        statusBarColor: Colors.blue.shade700, // Status bar color for light theme
         statusBarIconBrightness: Brightness.dark, // Dark icons for light theme
       ));
     }

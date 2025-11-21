@@ -1,3 +1,4 @@
+import 'package:construction_safety/app/modules/main/camera_feed/bindings/camera_feed_binding.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
@@ -54,7 +55,11 @@ class LiveFeedCard extends StatelessWidget {
     final config = statusConfig[status]!;
 
     return GestureDetector(
-      onTap: () => Get.to(() => CameraFeedView(camera: camera)),
+      onTap: () => Get.to(
+            () => const CameraFeedView(),
+        arguments: violation,
+        binding: CameraFeedBinding(),
+      ),
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(12),
@@ -106,7 +111,7 @@ class LiveFeedCard extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text("ID: ${camera.id}", style: TextStyle(fontSize: 12, color: Colors.grey.shade700)),
+                Text("${camera.id}", style: TextStyle(fontSize: 12, color: Colors.grey.shade700)),
                 Row(
                   children: [
                     const Icon(LucideIcons.users, size: 14),

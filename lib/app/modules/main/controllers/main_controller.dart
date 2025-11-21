@@ -26,7 +26,7 @@ class MainController extends GetxController {
 
     // Listen to index changes and ask manager to maybeFetch
     ever(index, (i) async {
-      final tab = AppTab.values[i as int];
+      final tab = AppTab.values[i];
       await _tabFetchManager.maybeFetch(tab);
     });
   }
