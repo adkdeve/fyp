@@ -13,6 +13,8 @@ abstract class Routes {
   static const VIOLATION_DETAIL = _Paths.MAIN + _Paths.VIOLATION_DETAIL;
   static const CAMERA_MANAGEMENT = _Paths.MAIN + _Paths.CAMERA_MANAGEMENT;
   static const PROFILE = _Paths.MAIN + _Paths.PROFILE;
+  static const HELPSUPPORT = _Paths.MAIN + _Paths.HELPSUPPORT;
+  static const TERMSPRIVACY = _Paths.MAIN + _Paths.TERMSPRIVACY;
 }
 
 abstract class _Paths {
@@ -27,4 +29,6 @@ abstract class _Paths {
   static const VIOLATION_DETAIL = '/violation-detail';
   static const CAMERA_MANAGEMENT = '/camera-management';
   static const PROFILE = '/profile';
+  static const HELPSUPPORT = '/helpsupport';
+  static const TERMSPRIVACY = '/termsprivacy';
 }

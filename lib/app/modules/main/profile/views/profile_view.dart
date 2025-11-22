@@ -46,6 +46,7 @@ class ProfileView extends GetView<ProfileController> {
 
   Widget _buildHeader() {
     return Container(
+      width: double.infinity, // Make header full width
       color: Colors.white,
       padding: const EdgeInsets.all(16),
       child: Row(
@@ -105,6 +106,7 @@ class ProfileView extends GetView<ProfileController> {
   Widget _buildProfilePicture() {
     return Obx(() {
       return Container(
+        width: double.infinity, // Make profile picture container full width
         padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(
           color: Colors.white,
@@ -170,6 +172,7 @@ class ProfileView extends GetView<ProfileController> {
 
   Widget _buildPersonalInformation() {
     return Container(
+      width: double.infinity, // Make container full width
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
@@ -178,8 +181,9 @@ class ProfileView extends GetView<ProfileController> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Section Header
+          // Section Header - Fixed to take full width
           Container(
+            width: double.infinity, // Make section header full width
             padding: const EdgeInsets.all(16),
             decoration: const BoxDecoration(
               border: Border(bottom: BorderSide(color: Color(0xFFE5E7EB))),
@@ -231,6 +235,7 @@ class ProfileView extends GetView<ProfileController> {
 
   Widget _buildWorkInformation() {
     return Container(
+      width: double.infinity, // Make container full width
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
@@ -239,8 +244,9 @@ class ProfileView extends GetView<ProfileController> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Section Header
+          // Section Header - Fixed to take full width
           Container(
+            width: double.infinity, // Make section header full width
             padding: const EdgeInsets.all(16),
             decoration: const BoxDecoration(
               border: Border(bottom: BorderSide(color: Color(0xFFE5E7EB))),
@@ -284,56 +290,63 @@ class ProfileView extends GetView<ProfileController> {
     required String field,
   }) {
     return Obx(() {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(icon, size: 16, color: const Color(0xFF6B7280)),
-              const SizedBox(width: 8),
-              Text(
-                label,
-                style: const TextStyle(
-                  fontSize: 14,
-                  color: Color(0xFF6B7280),
+      return SizedBox(
+        width: double.infinity, // Make form field take full width
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(icon, size: 16, color: const Color(0xFF6B7280)),
+                const SizedBox(width: 8),
+                Text(
+                  label,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: Color(0xFF6B7280),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            controller.isEditing.value
+                ? TextFormField(
+              initialValue: controller.formData[field],
+              onChanged: (value) => controller.updateField(field, value),
+              decoration: InputDecoration(
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Color(0xFFD1D5DB)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Color(0xFF2563EB)),
                 ),
               ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          controller.isEditing.value
-              ? TextFormField(
-            initialValue: controller.formData[field],
-            onChanged: (value) => controller.updateField(field, value),
-            decoration: InputDecoration(
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 12,
-                vertical: 8,
-              ),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: Color(0xFFD1D5DB)),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: Color(0xFF2563EB)),
+            )
+                : SizedBox(
+              width: double.infinity, // Make text take full width
+              child: Text(
+                controller.formData[field]!,
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: Color(0xFF111827),
+                ),
               ),
             ),
-          )
-              : Text(
-            controller.formData[field]!,
-            style: const TextStyle(
-              fontSize: 14,
-              color: Color(0xFF111827),
-            ),
-          ),
-        ],
+          ],
+        ),
       );
     });
   }
 
   Widget _buildAccountStats() {
     return Container(
+      width: double.infinity, // Make container full width
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
@@ -342,8 +355,9 @@ class ProfileView extends GetView<ProfileController> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Section Header
+          // Section Header - Fixed to take full width
           Container(
+            width: double.infinity, // Make section header full width
             padding: const EdgeInsets.all(16),
             decoration: const BoxDecoration(
               border: Border(bottom: BorderSide(color: Color(0xFFE5E7EB))),
@@ -439,6 +453,7 @@ class ProfileView extends GetView<ProfileController> {
 
   Widget _buildDangerZone() {
     return Container(
+      width: double.infinity, // Make container full width
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
@@ -447,8 +462,9 @@ class ProfileView extends GetView<ProfileController> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Section Header
+          // Section Header - Fixed to take full width
           Container(
+            width: double.infinity, // Make section header full width
             padding: const EdgeInsets.all(16),
             decoration: const BoxDecoration(
               color: Color(0xFFFEF2F2),

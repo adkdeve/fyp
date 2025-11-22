@@ -11,12 +11,16 @@ import '../modules/main/camera_management/bindings/camera_management_binding.dar
 import '../modules/main/camera_management/views/camera_management_view.dart';
 import '../modules/main/dashboard/bindings/dashboard_binding.dart';
 import '../modules/main/dashboard/views/dashboard_view.dart';
+import '../modules/main/helpsupport/bindings/helpsupport_binding.dart';
+import '../modules/main/helpsupport/views/helpsupport_view.dart';
 import '../modules/main/history/bindings/history_binding.dart';
 import '../modules/main/history/views/history_view.dart';
 import '../modules/main/profile/bindings/profile_binding.dart';
 import '../modules/main/profile/views/profile_view.dart';
 import '../modules/main/settings/bindings/settings_binding.dart';
 import '../modules/main/settings/views/settings_view.dart';
+import '../modules/main/termsprivacy/bindings/termsprivacy_binding.dart';
+import '../modules/main/termsprivacy/views/termsprivacy_view.dart';
 import '../modules/main/views/main_view.dart';
 import '../modules/main/violation_detail/bindings/violation_detail_binding.dart';
 import '../modules/main/violation_detail/views/violation_detail_view.dart';
@@ -26,12 +30,12 @@ part 'app_routes.dart';
 class AppPages {
   AppPages._();
 
-  static const INITIAL = Routes.PROFILE;
+  static const INITIAL = Routes.MAIN;
 
   static final routes = [
     GetPage(
       name: _Paths.MAIN,
-      page: () => const MainView(),
+      page: () => MainView(),
       binding: MainBinding(),
       children: [
         GetPage(
@@ -78,6 +82,16 @@ class AppPages {
           name: _Paths.PROFILE,
           page: () => const ProfileView(),
           binding: ProfileBinding(),
+        ),
+        GetPage(
+          name: _Paths.HELPSUPPORT,
+          page: () => HelpSupportView(),
+          binding: HelpsupportBinding(),
+        ),
+        GetPage(
+          name: _Paths.TERMSPRIVACY,
+          page: () => const TermsPrivacyView(),
+          binding: TermsprivacyBinding(),
         ),
       ],
     ),
