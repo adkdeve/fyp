@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import '../controllers/settings_controller.dart';
 
@@ -7,38 +8,44 @@ class SettingsView extends GetView<SettingsController> {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: Scaffold(
-        backgroundColor: Colors.grey[50],
-        body: Column(
-          children: [
-            // Header
-            _buildHeader(),
-            // Content
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  children: [
-                    // Profile Section
-                    _buildProfileSection(),
-                    const SizedBox(height: 16),
-                    // Notification Settings
-                    _buildNotificationSettings(),
-                    const SizedBox(height: 16),
-                    // Camera Settings
-                    _buildCameraSettings(),
-                    const SizedBox(height: 16),
-                    // General Settings
-                    _buildGeneralSettings(),
-                    const SizedBox(height: 16),
-                    // App Version
-                    _buildAppVersion(),
-                  ],
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.light.copyWith(
+          statusBarIconBrightness: Brightness.dark,
+          statusBarColor: Colors.white
+      ),
+      child: SafeArea(
+        child: Scaffold(
+          backgroundColor: Colors.grey[50],
+          body: Column(
+            children: [
+              // Header
+              _buildHeader(),
+              // Content
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    children: [
+                      // Profile Section
+                      _buildProfileSection(),
+                      const SizedBox(height: 16),
+                      // Notification Settings
+                      _buildNotificationSettings(),
+                      const SizedBox(height: 16),
+                      // Camera Settings
+                      _buildCameraSettings(),
+                      const SizedBox(height: 16),
+                      // General Settings
+                      _buildGeneralSettings(),
+                      const SizedBox(height: 16),
+                      // App Version
+                      _buildAppVersion(),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -71,99 +78,99 @@ class SettingsView extends GetView<SettingsController> {
   }
 
   Widget _buildProfileSection() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey[200]!),
-      ),
-      child: Column(
-        children: [
-          // Section Header
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              border: Border(bottom: BorderSide(color: Colors.grey[200]!)),
-            ),
-            child: const Row(
-              children: [
-                Text(
-                  'Profile',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black87,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          // Profile Content
-          GestureDetector(
-            onTap: controller.navigateToProfile,
-            child: Container(
+    return GestureDetector(
+      onTap: controller.navigateToProfile,
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.grey[200]!),
+        ),
+        child: Column(
+          children: [
+            // Section Header
+            Container(
               padding: const EdgeInsets.all(16),
-              child: Row(
+              decoration: BoxDecoration(
+                border: Border(bottom: BorderSide(color: Colors.grey[200]!)),
+              ),
+              child: const Row(
                 children: [
-                  // Avatar
-                  Container(
-                    width: 64,
-                    height: 64,
-                    decoration: const BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [Colors.blue, Colors.blueAccent],
-                      ),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Center(
-                      child: Text(
-                        'JD',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                  Text(
+                    'Profile',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black87,
                     ),
                   ),
-                  const SizedBox(width: 16),
-                  // User Info
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'John Doe',
-                          style: Get.textTheme.titleMedium?.copyWith(
-                            color: Colors.grey[900],
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          'Site Supervisor',
-                          style: Get.textTheme.bodyMedium?.copyWith(
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          'john.doe@construction.com',
-                          style: Get.textTheme.bodySmall?.copyWith(
-                            color: Colors.grey[500],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const Icon(Icons.chevron_right, color: Colors.grey, size: 20),
                 ],
               ),
             ),
-          ),
-        ],
+            // Profile Content
+            Container(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    // Avatar
+                    Container(
+                      width: 64,
+                      height: 64,
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [Colors.blue, Colors.blueAccent],
+                        ),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Center(
+                        child: Text(
+                          'JD',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    // User Info
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'John Doe',
+                            style: Get.textTheme.titleMedium?.copyWith(
+                              color: Colors.grey[900],
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Site Supervisor',
+                            style: Get.textTheme.bodyMedium?.copyWith(
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'john.doe@construction.com',
+                            style: Get.textTheme.bodySmall?.copyWith(
+                              color: Colors.grey[500],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Icon(Icons.chevron_right, color: Colors.grey, size: 20),
+                  ],
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }

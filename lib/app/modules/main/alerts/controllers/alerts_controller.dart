@@ -1,5 +1,7 @@
+import 'package:construction_safety/app/modules/main/violation_detail/views/violation_detail_view.dart';
 import 'package:get/get.dart';
 import '../../../../data/models/violation_model.dart';
+import '../../violation_detail/bindings/violation_detail_binding.dart';
 
 class AlertsController extends GetxController {
   RxList<ViolationModel> violations = <ViolationModel>[].obs;
@@ -62,7 +64,12 @@ class AlertsController extends GetxController {
   /// 🔹 View Details & Navigate to next screen
   void viewDetails(ViolationModel violation) {
     selectedViolation.value = violation;
-    Get.toNamed('/violationDetail', arguments: violation);
+    // Use direct navigation instead of named routes
+    Get.to(
+          () => const ViolationDetailView(),
+      arguments: violation,
+      binding: ViolationDetailBinding(),
+    );
   }
 
   /// 🔹 Get count by severity (for dashboard & summary UI)

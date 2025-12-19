@@ -26,7 +26,6 @@ class ViolationDetailController extends GetxController {
     }
   }
 
-
   void handleResolve() {
     if (selectedViolation.value != null) {
       // Update the violation status to resolved

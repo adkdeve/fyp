@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import '../../../../core/core.dart';
 import '../../../../data/models/camera_model.dart';
 import '../controllers/camera_feed_controller.dart';
 
@@ -8,46 +10,52 @@ class CameraFeedView extends GetView<CameraFeedController> {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: Scaffold(
-        backgroundColor: const Color(0xFF0F0F0F), // Darker background like in image
-        body: SafeArea(
-          child: Obx(() {
-            final camera = controller.selectedCamera.value;
-            if (camera == null) {
-              return const Center(child: CircularProgressIndicator());
-            }
-      
-            final isOnline = camera.cameraStatus == CameraStatus.online;
-      
-            return Column(
-              children: [
-                // Header
-                _buildHeader(camera, isOnline),
-                // Content
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      children: [
-                        // Live Feed
-                        _buildLiveFeed(camera, context, isOnline),
-                        const SizedBox(height: 16),
-                        // Zoom Controls
-                        _buildZoomControls(),
-                        const SizedBox(height: 16),
-                        // Camera Info
-                        _buildCameraInfo(),
-                        const SizedBox(height: 16),
-                        // Download Button
-                        _buildDownloadButton(),
-                      ],
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.light.copyWith(
+          statusBarIconBrightness: Brightness.light,
+          statusBarColor: const Color(0xFF0F0F0F)
+      ),
+      child: SafeArea(
+        child: Scaffold(
+          backgroundColor: const Color(0xFF0F0F0F), // Darker background like in image
+          body: SafeArea(
+            child: Obx(() {
+              final camera = controller.selectedCamera.value;
+              if (camera == null) {
+                return const Center(child: CircularProgressIndicator());
+              }
+
+              final isOnline = camera.cameraStatus == CameraStatus.online;
+
+              return Column(
+                children: [
+                  // Header
+                  _buildHeader(camera, isOnline),
+                  // Content
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        children: [
+                          // Live Feed
+                          _buildLiveFeed(camera, context, isOnline),
+                          const SizedBox(height: 16),
+                          // Zoom Controls
+                          _buildZoomControls(),
+                          const SizedBox(height: 16),
+                          // Camera Info
+                          _buildCameraInfo(),
+                          const SizedBox(height: 16),
+                          // Download Button
+                          _buildDownloadButton(),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-              ],
-            );
-          }),
+                ],
+              );
+            }),
+          ),
         ),
       ),
     );

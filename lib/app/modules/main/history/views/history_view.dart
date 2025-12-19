@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import '../../../../../common/widgets/my_text.dart';
 import '../../../../data/models/violation_model.dart';
@@ -9,18 +10,24 @@ class HistoryView extends GetView<HistoryController> {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: Scaffold(
-        backgroundColor: Colors.grey[50],
-        body: Column(
-          children: [
-            // Header Section
-            _buildHeader(),
-            // Content Section
-            Expanded(
-              child: _buildContent(),
-            ),
-          ],
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.light.copyWith(
+          statusBarIconBrightness: Brightness.dark,
+          statusBarColor: Colors.grey.shade50
+      ),
+      child: SafeArea(
+        child: Scaffold(
+          backgroundColor: Colors.grey[50],
+          body: Column(
+            children: [
+              // Header Section
+              _buildHeader(),
+              // Content Section
+              Expanded(
+                child: _buildContent(),
+              ),
+            ],
+          ),
         ),
       ),
     );

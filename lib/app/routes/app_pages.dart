@@ -1,5 +1,4 @@
 import 'package:get/get.dart';
-
 import '../modules/main/alerts/bindings/alerts_binding.dart';
 import '../modules/main/alerts/views/alerts_view.dart';
 import '../modules/main/analytics/bindings/analytics_binding.dart';

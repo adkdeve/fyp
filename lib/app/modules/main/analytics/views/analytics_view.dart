@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:fl_chart/fl_chart.dart';
 
@@ -9,41 +10,47 @@ class AnalyticsView extends GetView<AnalyticsController> {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: Scaffold(
-        backgroundColor: Colors.grey[50],
-        body: Column(
-          children: [
-            // Header
-            _buildHeader(),
-            // Content
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  children: [
-                    // Key Metrics
-                    _buildKeyMetrics(),
-                    const SizedBox(height: 16),
-                    // Weekly Violations Chart
-                    _buildViolationsChart(),
-                    const SizedBox(height: 16),
-                    // Violation Types Distribution
-                    _buildViolationTypesChart(),
-                    const SizedBox(height: 16),
-                    // Compliance Trend
-                    _buildComplianceTrend(),
-                    const SizedBox(height: 16),
-                    // Zone Performance
-                    _buildZonePerformance(context), // Pass context here
-                    const SizedBox(height: 16),
-                    // AI Detection Performance
-                    _buildAIDetectionPerformance(context), // Pass context here
-                  ],
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.light.copyWith(
+          statusBarIconBrightness: Brightness.dark,
+          statusBarColor: Colors.grey[50]
+      ),
+      child: SafeArea(
+        child: Scaffold(
+          backgroundColor: Colors.grey[50],
+          body: Column(
+            children: [
+              // Header
+              _buildHeader(),
+              // Content
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    children: [
+                      // Key Metrics
+                      _buildKeyMetrics(),
+                      const SizedBox(height: 16),
+                      // Weekly Violations Chart
+                      _buildViolationsChart(),
+                      const SizedBox(height: 16),
+                      // Violation Types Distribution
+                      _buildViolationTypesChart(),
+                      const SizedBox(height: 16),
+                      // Compliance Trend
+                      _buildComplianceTrend(),
+                      const SizedBox(height: 16),
+                      // Zone Performance
+                      _buildZonePerformance(context), // Pass context here
+                      const SizedBox(height: 16),
+                      // AI Detection Performance
+                      _buildAIDetectionPerformance(context), // Pass context here
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

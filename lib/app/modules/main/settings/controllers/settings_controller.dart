@@ -1,6 +1,13 @@
+import 'package:construction_safety/app/modules/main/camera_management/bindings/camera_management_binding.dart';
+import 'package:construction_safety/app/modules/main/camera_management/views/camera_management_view.dart';
+import 'package:construction_safety/app/modules/main/helpsupport/bindings/helpsupport_binding.dart';
+import 'package:construction_safety/app/modules/main/helpsupport/views/helpsupport_view.dart';
+import 'package:construction_safety/app/modules/main/profile/bindings/profile_binding.dart';
+import 'package:construction_safety/app/modules/main/profile/views/profile_view.dart';
+import 'package:construction_safety/app/modules/main/termsprivacy/bindings/termsprivacy_binding.dart';
+import 'package:construction_safety/app/modules/main/termsprivacy/views/termsprivacy_view.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-
 import '../../../../data/models/settings_model.dart';
 
 class SettingsController extends GetxController {
@@ -53,18 +60,30 @@ class SettingsController extends GetxController {
   }
 
   void navigateToProfile() {
-    Get.toNamed('/profile');
+    Get.to(
+      ProfileView(),
+      binding: ProfileBinding()
+    );
   }
 
   void navigateToCameraManagement() {
-    Get.toNamed('/camera-management');
+    Get.to(
+        CameraManagementView(),
+      binding: CameraManagementBinding()
+    );
   }
 
   void navigateToHelp() {
-    Get.toNamed('/help');
+    Get.to(
+        HelpSupportView(),
+        binding: HelpsupportBinding()
+    );
   }
 
   void navigateToTerms() {
-    Get.toNamed('/terms');
+    Get.to(
+        TermsPrivacyView(),
+        binding: TermsprivacyBinding()
+    );
   }
 }

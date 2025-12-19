@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
@@ -10,30 +11,36 @@ class AlertsView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.grey.shade50,
-      appBar: AppBar(
-        title: const Text("Active Alerts"),
-        backgroundColor: Colors.white,
-        elevation: 0,
-        foregroundColor: Colors.black,
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.light.copyWith(
+          statusBarIconBrightness: Brightness.dark,
+          statusBarColor: Colors.grey.shade50
       ),
-      body: Obx(() {
-        final activeAlerts = controller.activeAlerts;
+      child: Scaffold(
+        backgroundColor: Colors.grey.shade50,
+        appBar: AppBar(
+          title: const Text("Active Alerts"),
+          backgroundColor: Colors.white,
+          elevation: 0,
+          foregroundColor: Colors.black,
+        ),
+        body: Obx(() {
+          final activeAlerts = controller.activeAlerts;
 
-        return SingleChildScrollView(
-          padding: const EdgeInsets.all(14),
-          child: Column(
-            children: [
-              _summaryCards(activeAlerts),
-              const SizedBox(height: 14),
-              if (activeAlerts.isEmpty) _noAlertWidget(),
-              if (activeAlerts.isNotEmpty)
-                ...activeAlerts.map((alert) => _alertCard(alert)),
-            ],
-          ),
-        );
-      }),
+          return SingleChildScrollView(
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              children: [
+                _summaryCards(activeAlerts),
+                const SizedBox(height: 14),
+                if (activeAlerts.isEmpty) _noAlertWidget(),
+                if (activeAlerts.isNotEmpty)
+                  ...activeAlerts.map((alert) => _alertCard(alert)),
+              ],
+            ),
+          );
+        }),
+      ),
     );
   }
 
@@ -123,6 +130,11 @@ class AlertsView extends StatelessWidget {
             children: [
               Expanded(
                 child: OutlinedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    side: BorderSide(color: Colors.grey),
+                    foregroundColor: Colors.grey,
+                  ),
                   icon: const Icon(LucideIcons.eye, size: 16),
                   label: const Text("View Details"),
                   onPressed: () => controller.viewDetails(alert),
@@ -149,19 +161,18 @@ class AlertsView extends StatelessWidget {
 
   // 🏷 Badge Row (Type + Severity)
   Widget _badgeRow(ViolationModel alert, Map<String, dynamic> config) {
-    return Wrap(
-      spacing: 6,
-      children: [
-        _badge(
-          icon: _getTypeIcon(alert.type),
-          text: alert.type.name,
-          color: config["text"],
-        ),
-        _badge(
-          text: alert.severity.name.toUpperCase(),
-          color: config["text"],
-        ),
-      ],
+    return Row(
+        children: [
+          _badge(
+            icon: _getTypeIcon(alert.type),
+            text: alert.type.name,
+            color: config["text"],
+          ),
+          _badge(
+            text: alert.severity.name.toUpperCase(),
+            color: config["text"],
+          ),
+        ],
     );
   }
 
