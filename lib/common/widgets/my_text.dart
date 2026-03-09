@@ -1,22 +1,21 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 class MyText extends StatelessWidget {
-  const MyText(
-      {super.key,
-        required this.text,
-        required this.fontSize,
-        this.fontWeight,
-        this.color,
-        this.textAlign = TextAlign.center,
-        this.letterSpacing = .3,
-        this.height = 0,
-        this.maxLines,
-        this.overflow,
-        this.decoration,
-        this.opacity = 1.0,
-        this.softWrap = false});
-
+  const MyText({
+    super.key,
+    required this.text,
+    required this.fontSize,
+    this.fontWeight,
+    this.color,
+    this.textAlign = TextAlign.center,
+    this.letterSpacing = .3,
+    this.height = 0,
+    this.maxLines,
+    this.overflow,
+    this.decoration,
+    this.opacity = 1.0,
+    this.softWrap = false,
+  });
 
   final String text;
   final double? fontSize;
@@ -31,12 +30,11 @@ class MyText extends StatelessWidget {
   final double opacity;
   final bool softWrap;
 
-
-
   @override
   Widget build(BuildContext context) {
     // Apply the opacity to the color if color is provided
-    Color? finalColor = color ?? Theme.of(context).textTheme.bodyLarge?.color;  // Default to black if no color is provided
+    Color? finalColor =
+        color ?? Theme.of(context).textTheme.bodyLarge?.color; // Default to black if no color is provided
     finalColor = finalColor?.withOpacity(opacity);
 
     return Text(
@@ -45,7 +43,7 @@ class MyText extends StatelessWidget {
       overflow: overflow ?? TextOverflow.visible,
       maxLines: maxLines,
       softWrap: softWrap,
-      style: GoogleFonts.inter().copyWith(
+      style: TextStyle(
         decoration: decoration,
         height: height,
         fontSize: fontSize,

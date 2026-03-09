@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../../../app/core/core.dart';
 import '../../common/widgets/smooth_rectangle_border.dart';
 
@@ -97,10 +96,7 @@ class _MyTextFormFieldState extends State<MyTextFormField> {
             keyboardType: widget.keyboardType,
             cursorColor: R.theme.cursorColor,
             maxLines: 1,
-            style: GoogleFonts.inter().copyWith(
-              fontWeight: FontWeight.w500,
-              letterSpacing: 0.3,
-            ),
+            style: const TextStyle(fontWeight: FontWeight.w500, letterSpacing: 0.3),
             validator: (value) {
               final result = widget.validator?.call(value);
               setState(() {
@@ -111,51 +107,38 @@ class _MyTextFormFieldState extends State<MyTextFormField> {
             },
             decoration: InputDecoration(
               isDense: true,
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: AppConfig.defaultPadding,
-                vertical: 12,
-              ),
+              contentPadding: const EdgeInsets.symmetric(horizontal: AppConfig.defaultPadding, vertical: 12),
               hintText: widget.hinttxt,
-              hintStyle: GoogleFonts.inter().copyWith(
-                fontSize: 14,
-                fontWeight: FontWeight.w400,
-                letterSpacing: 0.3,
-              ),
+              hintStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w400, letterSpacing: 0.3),
               suffixIcon: widget.obscureTxt
                   ? IconButton(
-                iconSize: 20,
-                icon: Icon(
-                  _passwordVisible
-                      ? Icons.visibility_outlined
-                      : Icons.visibility_off_outlined,
-                  color: R.theme.color400,
-                ),
-                onPressed: () {
-                  setState(() {
-                    _passwordVisible = !_passwordVisible;
-                  });
-                },
-              )
+                      iconSize: 20,
+                      icon: Icon(
+                        _passwordVisible ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                        color: R.theme.color400,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _passwordVisible = !_passwordVisible;
+                        });
+                      },
+                    )
                   : (widget.suffixIcon != null
-                  ? Padding(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: AppConfig.defaultPadding),
-                child: SvgPicture.asset(widget.suffixIcon ?? ''),
-              )
-                  : null),
+                        ? Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: AppConfig.defaultPadding),
+                            child: SvgPicture.asset(widget.suffixIcon ?? ''),
+                          )
+                        : null),
               prefixIcon: widget.prefixIcon != null
                   ? Padding(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: AppConfig.defaultPadding, vertical: 14),
-                child: SvgPicture.asset(
-                  widget.prefixIcon ?? '',
-                  color: _isFocused
-                      ? (lightMode
-                      ? R.theme.light.primaryColor
-                      : R.theme.dark.primaryColor)
-                      : R.theme.color400,
-                ),
-              )
+                      padding: const EdgeInsets.symmetric(horizontal: AppConfig.defaultPadding, vertical: 14),
+                      child: SvgPicture.asset(
+                        widget.prefixIcon ?? '',
+                        color: _isFocused
+                            ? (lightMode ? R.theme.light.primaryColor : R.theme.dark.primaryColor)
+                            : R.theme.color400,
+                      ),
+                    )
                   : null,
               border: InputBorder.none,
             ),
@@ -168,12 +151,7 @@ class _MyTextFormFieldState extends State<MyTextFormField> {
             padding: const EdgeInsets.only(top: 6, left: 6),
             child: Text(
               _errorText!,
-              style: GoogleFonts.inter(
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-                color: R.theme.error,
-                height: 1.2,
-              ),
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: R.theme.error, height: 1.2),
             ),
           ),
       ],

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 class AppThemeData {
   static final AppThemeData _instance = AppThemeData._internal();
@@ -60,15 +59,19 @@ class AppThemeData {
   // Method to apply system UI style based on theme mode
   void applySystemUIOverlayStyle(ThemeMode themeMode) {
     if (isDarkMode = WidgetsBinding.instance.window.platformBrightness == Brightness.dark) {
-      SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle.dark.copyWith(
-        statusBarColor: Colors.blue.shade700, // Status bar color for dark theme
-        statusBarIconBrightness: Brightness.light, // Light icons for dark theme
-      ));
+      SystemChrome.setSystemUIOverlayStyle(
+        SystemUiOverlayStyle.dark.copyWith(
+          statusBarColor: Colors.blue.shade700, // Status bar color for dark theme
+          statusBarIconBrightness: Brightness.light, // Light icons for dark theme
+        ),
+      );
     } else {
-      SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle.light.copyWith(
-        statusBarColor: Colors.blue.shade700, // Status bar color for light theme
-        statusBarIconBrightness: Brightness.dark, // Dark icons for light theme
-      ));
+      SystemChrome.setSystemUIOverlayStyle(
+        SystemUiOverlayStyle.light.copyWith(
+          statusBarColor: Colors.blue.shade700, // Status bar color for light theme
+          statusBarIconBrightness: Brightness.dark, // Dark icons for light theme
+        ),
+      );
     }
   }
 
@@ -91,13 +94,8 @@ class AppThemeData {
       colorScheme: colorScheme,
       primaryColor: colorScheme.primary,
       scaffoldBackgroundColor: colorScheme.background,
-      appBarTheme: base.appBarTheme.copyWith(
-        backgroundColor: white,
-        foregroundColor: black,
-      ),
-      bottomAppBarTheme: base.bottomAppBarTheme.copyWith(
-        color: primary,
-      ),
+      appBarTheme: base.appBarTheme.copyWith(backgroundColor: white, foregroundColor: black),
+      bottomAppBarTheme: base.bottomAppBarTheme.copyWith(color: primary),
       // bottomNavigationBarTheme: base.bottomNavigationBarTheme.copyWith(
       //   backgroundColor: orange,
       // ),
@@ -106,27 +104,18 @@ class AppThemeData {
         labelLarge: base.textTheme.labelLarge!.copyWith(color: colorScheme.onPrimary),
       ),
 
-      buttonTheme: base.buttonTheme.copyWith(
-        buttonColor: colorScheme.primary,
-        textTheme: ButtonTextTheme.primary,
-      ),
-      iconTheme: base.iconTheme.copyWith(
-        color: colorScheme.onBackground,
-      ),
+      buttonTheme: base.buttonTheme.copyWith(buttonColor: colorScheme.primary, textTheme: ButtonTextTheme.primary),
+      iconTheme: base.iconTheme.copyWith(color: colorScheme.onBackground),
       inputDecorationTheme: base.inputDecorationTheme.copyWith(
-        border: OutlineInputBorder(
-          borderSide: BorderSide(color: colorScheme.primary),
-        ),
-        hintStyle: GoogleFonts.inter().copyWith(
-          color: color400,
-        ),
+        border: OutlineInputBorder(borderSide: BorderSide(color: colorScheme.primary)),
+        hintStyle: TextStyle(color: color400),
         // focusedBorder: OutlineInputBorder(
         //   borderSide: BorderSide(color: colorScheme.secondary),
         // ),
         // enabledBorder: OutlineInputBorder(
         //   borderSide: BorderSide(color: colorScheme.primary),
         // ),
-        errorStyle: GoogleFonts.inter(
+        errorStyle: TextStyle(
           fontSize: 13,
           fontWeight: FontWeight.w500,
           color: Colors.redAccent, // or your custom color
@@ -137,28 +126,21 @@ class AppThemeData {
         // ),
         labelStyle: TextStyle(color: colorScheme.onSurface),
       ),
-      floatingActionButtonTheme: base.floatingActionButtonTheme.copyWith(
-        backgroundColor: colorScheme.primary,
+      floatingActionButtonTheme: base.floatingActionButtonTheme.copyWith(backgroundColor: colorScheme.primary),
+      snackBarTheme: base.snackBarTheme.copyWith(backgroundColor: colorScheme.primary),
+      textSelectionTheme: base.textSelectionTheme.copyWith(selectionColor: secondary, cursorColor: primary),
+      bottomNavigationBarTheme: base.bottomNavigationBarTheme.copyWith(
+        backgroundColor: white,
+        selectedItemColor: green,
+        unselectedItemColor: black,
       ),
-      snackBarTheme: base.snackBarTheme.copyWith(
-        backgroundColor: colorScheme.primary,
-      ),
-      textSelectionTheme: base.textSelectionTheme.copyWith(
-        selectionColor: secondary,
-        cursorColor: primary,
-      ),
-        bottomNavigationBarTheme: base.bottomNavigationBarTheme.copyWith(
-          backgroundColor: white,
-          selectedItemColor: green,
-          unselectedItemColor: black,
-        )
-        // switchTheme: SwitchThemeData(
-        //   thumbColor: WidgetStateProperty.all(switchInactiveThumbColor),
-        //   trackColor: WidgetStateProperty.all(switchInactiveTrackColor),
-        //   activeTrackColor: WidgetStateProperty.all(switchActiveTrackColor),
-        //   activeColor: WidgetStateProperty.all(switchActiveColor),
-        // ),
-        //
+      // switchTheme: SwitchThemeData(
+      //   thumbColor: WidgetStateProperty.all(switchInactiveThumbColor),
+      //   trackColor: WidgetStateProperty.all(switchInactiveTrackColor),
+      //   activeTrackColor: WidgetStateProperty.all(switchActiveTrackColor),
+      //   activeColor: WidgetStateProperty.all(switchActiveColor),
+      // ),
+      //
     );
   }
 
@@ -181,49 +163,28 @@ class AppThemeData {
       colorScheme: colorScheme,
       primaryColor: colorScheme.primary,
       scaffoldBackgroundColor: colorScheme.background,
-      appBarTheme: base.appBarTheme.copyWith(
-        backgroundColor: color600,
-        foregroundColor: white,
-      ),
+      appBarTheme: base.appBarTheme.copyWith(backgroundColor: color600, foregroundColor: white),
       textTheme: base.textTheme.copyWith(
         bodyLarge: base.textTheme.bodyLarge!.copyWith(color: colorScheme.onBackground),
         labelLarge: base.textTheme.labelLarge!.copyWith(color: colorScheme.onPrimary),
       ),
-      buttonTheme: base.buttonTheme.copyWith(
-        buttonColor: colorScheme.primary,
-        textTheme: ButtonTextTheme.primary,
-      ),
-      iconTheme: base.iconTheme.copyWith(
-        color: colorScheme.onBackground,
-      ),
+      buttonTheme: base.buttonTheme.copyWith(buttonColor: colorScheme.primary, textTheme: ButtonTextTheme.primary),
+      iconTheme: base.iconTheme.copyWith(color: colorScheme.onBackground),
       inputDecorationTheme: base.inputDecorationTheme.copyWith(
-        border: OutlineInputBorder(
-          borderSide: BorderSide(color: colorScheme.primary),
-        ),
-        hintStyle: GoogleFonts.inter().copyWith(
-          color: color400,
-        ),
+        border: OutlineInputBorder(borderSide: BorderSide(color: colorScheme.primary)),
+        hintStyle: TextStyle(color: color400),
         // focusedBorder: OutlineInputBorder(
         //   borderSide: BorderSide(color: colorScheme.secondary),
         // ),
         // enabledBorder: OutlineInputBorder(
         //   borderSide: BorderSide(color: colorScheme.primary),
         // ),
-        errorBorder: OutlineInputBorder(
-          borderSide: BorderSide(color: colorScheme.error),
-        ),
+        errorBorder: OutlineInputBorder(borderSide: BorderSide(color: colorScheme.error)),
         labelStyle: TextStyle(color: colorScheme.onSurface),
       ),
-      floatingActionButtonTheme: base.floatingActionButtonTheme.copyWith(
-        backgroundColor: colorScheme.primary,
-      ),
-      snackBarTheme: base.snackBarTheme.copyWith(
-        backgroundColor: colorScheme.primary,
-      ),
-      textSelectionTheme: base.textSelectionTheme.copyWith(
-        selectionColor: secondary,
-        cursorColor: primary,
-      ),
+      floatingActionButtonTheme: base.floatingActionButtonTheme.copyWith(backgroundColor: colorScheme.primary),
+      snackBarTheme: base.snackBarTheme.copyWith(backgroundColor: colorScheme.primary),
+      textSelectionTheme: base.textSelectionTheme.copyWith(selectionColor: secondary, cursorColor: primary),
     );
   }
 }
