@@ -1,6 +1,74 @@
+import '../../core/config/app_config.dart';
+
 enum ViolationType { PPE, Unauthorized, Hazardous, Material }
 enum ViolationSeverity { high, medium, low }
 enum ViolationStatus { active, acknowledged, dismissed, resolved }
+
+// ── Backend → Flutter enum mapping ──────────────────────────────────────────
+
+ViolationType _typeFromBackend(String? raw) {
+  switch (raw) {
+    case 'no_helmet':
+    case 'no_vest':
+    case 'no_gloves':
+    case 'no_boots':
+    case 'no_mask':
+      return ViolationType.PPE;
+    case 'unauthorized_zone':
+      return ViolationType.Unauthorized;
+    case 'unsafe_material':
+      return ViolationType.Material;
+    default:
+      return ViolationType.Hazardous;
+  }
+}
+
+String _typeDescription(String? raw) {
+  switch (raw) {
+    case 'no_helmet':
+      return 'No safety helmet detected';
+    case 'no_vest':
+      return 'No safety vest detected';
+    case 'no_gloves':
+      return 'No safety gloves detected';
+    case 'no_boots':
+      return 'No safety boots detected';
+    case 'no_mask':
+      return 'No face mask detected';
+    case 'unauthorized_zone':
+      return 'Unauthorized zone entry detected';
+    case 'unsafe_material':
+      return 'Unsafe material handling detected';
+    default:
+      return 'Safety violation detected';
+  }
+}
+
+ViolationSeverity _severityFromBackend(String? raw) {
+  switch (raw) {
+    case 'high':
+      return ViolationSeverity.high;
+    case 'low':
+      return ViolationSeverity.low;
+    default:
+      return ViolationSeverity.medium;
+  }
+}
+
+ViolationStatus _statusFromBackend(String? raw) {
+  switch (raw) {
+    case 'acknowledged':
+      return ViolationStatus.acknowledged;
+    case 'resolved':
+      return ViolationStatus.resolved;
+    case 'false_positive':
+      return ViolationStatus.dismissed;
+    default:
+      return ViolationStatus.active; // 'open'
+  }
+}
+
+// ── Model ────────────────────────────────────────────────────────────────────
 
 class ViolationModel {
   final String id;
@@ -10,8 +78,12 @@ class ViolationModel {
   final DateTime time;
   final ViolationStatus status;
   final ViolationSeverity severity;
-  final String? imageUrl;         // Optional: image from detection
-  final String? acknowledgedBy;   // Optional: worker/site manager
+  final String? imageUrl;
+  final String? acknowledgedBy;
+  final double? confidence;
+  final int? cameraId;
+  /// Raw backend type string (e.g. "no_helmet") for resolving
+  final String? rawType;
 
   ViolationModel({
     required this.id,
@@ -23,48 +95,50 @@ class ViolationModel {
     required this.severity,
     this.imageUrl,
     this.acknowledgedBy,
+    this.confidence,
+    this.cameraId,
+    this.rawType,
   });
 
-  // Convert model to JSON (API/Post)
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'type': type.name,
-      'zone': zone,
-      'description': description,
-      'time': time.toIso8601String(),
-      'status': status.name,
-      'severity': severity.name,
-      'imageUrl': imageUrl,
-      'acknowledgedBy': acknowledgedBy,
-    };
-  }
-
-  // Convert JSON to Model (API/Get)
   factory ViolationModel.fromJson(Map<String, dynamic> json) {
+    final rawType = json['type'] as String?;
+    final snapshotPath = json['snapshot_url'] as String?;
+    final camera = json['camera'] as Map<String, dynamic>?;
+    final cameraLocation =
+        camera?['location'] as String? ?? camera?['name'] as String? ?? 'Unknown Zone';
+
     return ViolationModel(
-      id: json['id'] ?? '',
-      type: ViolationType.values.firstWhere(
-            (e) => e.name == json['type'],
-        orElse: () => ViolationType.PPE,
-      ),
-      zone: json['zone'] ?? '',
-      description: json['description'] ?? '',
-      time: DateTime.tryParse(json['time'] ?? '') ?? DateTime.now(),
-      status: ViolationStatus.values.firstWhere(
-            (e) => e.name == json['status'],
-        orElse: () => ViolationStatus.active,
-      ),
-      severity: ViolationSeverity.values.firstWhere(
-            (e) => e.name == json['severity'],
-        orElse: () => ViolationSeverity.medium,
-      ),
-      imageUrl: json['imageUrl'],
-      acknowledgedBy: json['acknowledgedBy'],
+      id: json['id']?.toString() ?? '',
+      type: _typeFromBackend(rawType),
+      zone: cameraLocation,
+      description: (json['notes'] as String?)?.isNotEmpty == true
+          ? json['notes']
+          : _typeDescription(rawType),
+      time: DateTime.tryParse(json['detected_at'] as String? ?? '') ?? DateTime.now(),
+      status: _statusFromBackend(json['status'] as String?),
+      severity: _severityFromBackend(json['severity'] as String?),
+      imageUrl: snapshotPath != null
+          ? '${AppConfig.imageBaseUrl}$snapshotPath'
+          : null,
+      acknowledgedBy: json['resolved_by'] as String?,
+      confidence: (json['confidence'] as num?)?.toDouble(),
+      cameraId: json['camera_id'] as int? ?? camera?['id'] as int?,
+      rawType: rawType,
     );
   }
 
-  // For updating fields immutably
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'type': rawType ?? type.name,
+        'zone': zone,
+        'description': description,
+        'time': time.toIso8601String(),
+        'status': status.name,
+        'severity': severity.name,
+        'imageUrl': imageUrl,
+        'acknowledgedBy': acknowledgedBy,
+      };
+
   ViolationModel copyWith({
     String? id,
     ViolationType? type,
@@ -75,6 +149,9 @@ class ViolationModel {
     ViolationSeverity? severity,
     String? imageUrl,
     String? acknowledgedBy,
+    double? confidence,
+    int? cameraId,
+    String? rawType,
   }) {
     return ViolationModel(
       id: id ?? this.id,
@@ -86,6 +163,9 @@ class ViolationModel {
       severity: severity ?? this.severity,
       imageUrl: imageUrl ?? this.imageUrl,
       acknowledgedBy: acknowledgedBy ?? this.acknowledgedBy,
+      confidence: confidence ?? this.confidence,
+      cameraId: cameraId ?? this.cameraId,
+      rawType: rawType ?? this.rawType,
     );
   }
 }

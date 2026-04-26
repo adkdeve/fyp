@@ -1,62 +1,71 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-
 import '../../../../data/models/violation_model.dart';
+import '../../../../data/services/safety_api_service.dart';
 
 class ViolationDetailController extends GetxController {
+  final SafetyApiService _api = SafetyApiService.to;
+
   final Rx<ViolationModel?> selectedViolation = Rx<ViolationModel?>(null);
+  final isResolving = false.obs;
 
   @override
   void onInit() {
     super.onInit();
-    print('🎯 ViolationDetailController initialized');
-    print('📦 Get.arguments: ${Get.arguments}');
-    print('📦 Get.arguments type: ${Get.arguments?.runtimeType}');
-
-    // Get violation from arguments
     final violation = Get.arguments as ViolationModel?;
-    print('🔍 Violation received: $violation');
-
     if (violation != null) {
       selectedViolation.value = violation;
-      print('✅ Violation set successfully: ${violation.id}');
     } else {
-      print('❌ No violation found, navigating back');
-      Get.back(); // Navigate back if no violation provided
+      Get.back();
     }
   }
 
-  void handleResolve() {
-    if (selectedViolation.value != null) {
-      // Update the violation status to resolved
-      final updatedViolation = selectedViolation.value!.copyWith(
-        status: ViolationStatus.resolved,
-      );
-      selectedViolation.value = updatedViolation;
+  Future<void> handleResolve() async {
+    final v = selectedViolation.value;
+    if (v == null) return;
+    isResolving.value = true;
+    try {
+      final id = int.tryParse(v.id);
+      if (id != null) {
+        await _api.resolveViolation(id, 'resolved');
+      }
+      selectedViolation.value = v.copyWith(status: ViolationStatus.resolved);
+      Get.snackbar('Resolved', 'Violation marked as resolved',
+          snackPosition: SnackPosition.BOTTOM);
+    } catch (e) {
+      Get.snackbar('Error', e.toString(), snackPosition: SnackPosition.BOTTOM);
+    } finally {
+      isResolving.value = false;
+    }
+  }
 
-      // TODO: Update in your main violations list
-      Get.snackbar(
-        'Violation Resolved',
-        'Violation has been marked as resolved',
-        snackPosition: SnackPosition.BOTTOM,
-      );
+  Future<void> handleMarkFalsePositive() async {
+    final v = selectedViolation.value;
+    if (v == null) return;
+    isResolving.value = true;
+    try {
+      final id = int.tryParse(v.id);
+      if (id != null) {
+        await _api.resolveViolation(id, 'false_positive');
+      }
+      selectedViolation.value = v.copyWith(status: ViolationStatus.dismissed);
+      Get.snackbar('Updated', 'Marked as false positive',
+          snackPosition: SnackPosition.BOTTOM);
+    } catch (e) {
+      Get.snackbar('Error', e.toString(), snackPosition: SnackPosition.BOTTOM);
+    } finally {
+      isResolving.value = false;
     }
   }
 
   void handleDownload() {
-    Get.snackbar(
-      'Downloading Report',
-      'Violation report with evidence is being downloaded...',
-      snackPosition: SnackPosition.BOTTOM,
-    );
+    Get.snackbar('Downloading', 'Violation report being downloaded...',
+        snackPosition: SnackPosition.BOTTOM);
   }
 
   void handleShare() {
-    Get.snackbar(
-      'Sharing Details',
-      'Violation details are being shared via email...',
-      snackPosition: SnackPosition.BOTTOM,
-    );
+    Get.snackbar('Sharing', 'Violation details being shared...',
+        snackPosition: SnackPosition.BOTTOM);
   }
 
   Map<String, dynamic> getSeverityConfig(ViolationSeverity severity) {

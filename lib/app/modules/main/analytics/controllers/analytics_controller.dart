@@ -1,146 +1,194 @@
 import 'dart:ui';
-
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-
 import '../../../../data/models/analytics_model.dart';
+import '../../../../data/services/safety_api_service.dart';
 
 class AnalyticsController extends GetxController {
+  final SafetyApiService _api = SafetyApiService.to;
+
   final RxString timeRange = 'week'.obs;
+  final isLoading = false.obs;
 
-  final weeklyData = [
-    AnalyticsData(period: "Mon", violations: 12),
-    AnalyticsData(period: "Tue", violations: 8),
-    AnalyticsData(period: "Wed", violations: 15),
-    AnalyticsData(period: "Thu", violations: 6),
-    AnalyticsData(period: "Fri", violations: 9),
-    AnalyticsData(period: "Sat", violations: 4),
-    AnalyticsData(period: "Sun", violations: 2),
-  ];
+  // ── Reactive data (populated from API) ────────────────────────────────────
+  final weeklyData = <AnalyticsData>[].obs;
+  final monthlyData = <AnalyticsData>[].obs;
+  final violationTypeData = <ViolationTypeData>[].obs;
+  final complianceTrend = <ComplianceTrend>[].obs;
+  final zonePerformance = <ZonePerformance>[].obs;
 
-  final monthlyData = [
-    AnalyticsData(period: "Week 1", violations: 45),
-    AnalyticsData(period: "Week 2", violations: 38),
-    AnalyticsData(period: "Week 3", violations: 52),
-    AnalyticsData(period: "Week 4", violations: 30),
-  ];
+  // Key metrics
+  final activeViolations = 0.obs;
+  final totalViolations = 0.obs;
+  final complianceRate = 0.obs;
+  final avgResponseTime = 0.0.obs;
 
-  final violationTypeData = [
-    ViolationTypeData(name: "PPE", value: 45, color: Color(0xFF3b82f6)),
-    ViolationTypeData(name: "Unauthorized", value: 25, color: Color(0xFFf59e0b)),
-    ViolationTypeData(name: "Hazardous", value: 20, color: Color(0xFFef4444)),
-    ViolationTypeData(name: "Material", value: 10, color: Color(0xFF8b5cf6)),
-  ];
+  static const _typeColors = {
+    'PPE': Color(0xFF3b82f6),
+    'Unauthorized': Color(0xFFf59e0b),
+    'Hazardous': Color(0xFFef4444),
+    'Material': Color(0xFF8b5cf6),
+    'Other': Color(0xFF6b7280),
+  };
 
-  final complianceTrend = [
-    ComplianceTrend(week: "W1", compliance: 82),
-    ComplianceTrend(week: "W2", compliance: 85),
-    ComplianceTrend(week: "W3", compliance: 87),
-    ComplianceTrend(week: "W4", compliance: 89),
-  ];
+  @override
+  void onInit() {
+    super.onInit();
+    fetchAll();
+  }
 
-  final zonePerformance = [
-    ZonePerformance(zone: "Zone A - Main Entrance", compliance: 95, violations: 3, id: "A"),
-    ZonePerformance(zone: "Zone B - Construction Area", compliance: 82, violations: 12, id: "B"),
-    ZonePerformance(zone: "Zone C - Storage Area", compliance: 91, violations: 5, id: "C"),
-    ZonePerformance(zone: "Zone D - Scaffolding", compliance: 88, violations: 8, id: "D"),
-  ];
+  Future<void> fetchAll({int days = 7}) async {
+    isLoading.value = true;
+    try {
+      await Future.wait([
+        fetchSummary(days: days),
+        fetchTrend(days: days),
+        fetchByType(days: days),
+        fetchByCamera(days: days),
+      ]);
+    } finally {
+      isLoading.value = false;
+    }
+  }
 
-  // Key Metrics
-  final activeViolations = 8;
-  final totalViolations = 56;
-  final complianceRate = 89;
-  final avgResponseTime = 2.3;
+  Future<void> fetchSummary({int days = 7}) async {
+    try {
+      final s = await _api.getSummary(days: days);
+      totalViolations.value = (s['total_violations'] as int?) ?? 0;
+      activeViolations.value = (s['open_violations'] as int?) ?? 0;
+      final safe = (s['safe_workers'] as int?) ?? 25;
+      final total = (s['total_workers'] as int?) ?? 28;
+      complianceRate.value =
+          total == 0 ? 100 : ((safe / total) * 100).round();
+    } catch (_) {}
+  }
 
+  Future<void> fetchTrend({int days = 7}) async {
+    try {
+      final raw = await _api.getTrend(days: days);
+      final parsed = raw.map((e) {
+        final m = e as Map<String, dynamic>;
+        return AnalyticsData(
+          period: m['date'] as String? ?? '',
+          violations: (m['count'] as int?) ?? 0,
+        );
+      }).toList();
+      if (days <= 7) {
+        weeklyData.assignAll(parsed);
+      } else {
+        monthlyData.assignAll(parsed);
+      }
+    } catch (_) {}
+  }
+
+  Future<void> fetchByType({int days = 7}) async {
+    try {
+      final raw = await _api.getByType(days: days);
+      final parsed = raw.map((e) {
+        final m = e as Map<String, dynamic>;
+        final name = _friendlyTypeName(m['type'] as String? ?? 'Other');
+        return ViolationTypeData(
+          name: name,
+          value: (m['count'] as int?) ?? 0,
+          color: _typeColors[name] ?? const Color(0xFF6b7280),
+        );
+      }).toList();
+      violationTypeData.assignAll(parsed);
+    } catch (_) {}
+  }
+
+  Future<void> fetchByCamera({int days = 7}) async {
+    try {
+      final raw = await _api.getByCamera(days: days);
+      final parsed = raw.asMap().entries.map((entry) {
+        final m = entry.value as Map<String, dynamic>;
+        final count = (m['count'] as int?) ?? 0;
+        final name = m['camera_name'] as String? ?? 'Camera ${entry.key + 1}';
+        final compliance = count == 0 ? 100 : (100 - (count * 2)).clamp(0, 100);
+        return ZonePerformance(
+          zone: name,
+          compliance: compliance,
+          violations: count,
+          id: (entry.key + 1).toString(),
+        );
+      }).toList();
+      zonePerformance.assignAll(parsed);
+    } catch (_) {}
+  }
+
+  // ── Type name mapping ──────────────────────────────────────────────────────
+  String _friendlyTypeName(String raw) {
+    switch (raw) {
+      case 'no_helmet':
+      case 'no_vest':
+      case 'no_gloves':
+      case 'no_boots':
+      case 'no_mask':
+        return 'PPE';
+      case 'unauthorized_zone':
+        return 'Unauthorized';
+      case 'unsafe_material':
+        return 'Material';
+      default:
+        return 'Hazardous';
+    }
+  }
+
+  // ── UI actions ─────────────────────────────────────────────────────────────
   void setTimeRange(String range) {
     timeRange.value = range;
-    Get.snackbar(
-      'Filter Applied',
-      'Filtering analytics for: ${range == "week" ? "This Week" : range == "month" ? "This Month" : "This Year"}',
-      snackPosition: SnackPosition.BOTTOM,
-    );
+    final days = range == 'month' ? 30 : range == 'year' ? 365 : 7;
+    fetchAll(days: days);
   }
+
+  List<AnalyticsData> get currentData =>
+      timeRange.value == 'month' ? monthlyData : weeklyData;
 
   void handleExport() {
     Get.snackbar(
       'Exporting Analytics Report',
-      'Format: PDF\nIncluding:\n• Violation trends\n• Compliance metrics\n• Zone performance\n• AI detection statistics',
+      'Generating PDF with live data...',
       snackPosition: SnackPosition.BOTTOM,
-      duration: Duration(seconds: 3),
+      duration: const Duration(seconds: 3),
     );
   }
 
   void showMetricDetails(String metric) {
-    String message = '';
+    String message;
     switch (metric) {
       case 'compliance':
-        message = 'Compliance Rate: $complianceRate%\n\n✓ Safe workers: 25/28\n✓ PPE compliance: 92%\n✓ Zone compliance: 88%';
+        message = 'Compliance Rate: ${complianceRate.value}%';
         break;
       case 'violations':
-        message = 'Total Violations: $totalViolations\n\n• Active: $activeViolations\n• Resolved: ${totalViolations - activeViolations}\n• This week: -12% vs last week';
+        message =
+            'Total: ${totalViolations.value} • Active: ${activeViolations.value}';
         break;
       case 'response':
-        message = 'Average Response Time: ${avgResponseTime}s\n\nFrom detection to alert delivery:\n• Fastest: 1.8s\n• Average: 2.3s\n• Slowest: 3.1s';
+        message = 'Avg response time: ${avgResponseTime.value.toStringAsFixed(1)}s';
         break;
-      case 'zones':
-        message = 'Active Monitoring Zones: 4/4\n\n✓ Zone A - Main Entrance\n✓ Zone B - Construction Area\n✓ Zone C - Storage Area\n✓ Zone D - Scaffolding';
-        break;
+      default:
+        message = 'Monitoring ${zonePerformance.length} camera zones';
     }
-    Get.dialog(
-      AlertDialog(
-        title: Text('Metric Details'),
-        content: Text(message),
-        actions: [
-          TextButton(
-            onPressed: () => Get.back(),
-            child: Text('OK'),
-          ),
-        ],
-      ),
-    );
+    Get.dialog(AlertDialog(
+      title: Text('Metric Details'),
+      content: Text(message),
+      actions: [TextButton(onPressed: Get.back, child: const Text('OK'))],
+    ));
   }
 
   void showViolationTypeDetails(ViolationTypeData data) {
-    final total = totalViolations * (data.value / 100);
-    Get.dialog(
-      AlertDialog(
-        title: Text('${data.name} Violations'),
-        content: Text(
-            'Percentage: ${data.value}%\n'
-                'Total incidents: ${total.round()}\n'
-                'Trend: ${data.value > 30 ? "High" : data.value > 15 ? "Medium" : "Low"} priority'
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Get.back(),
-            child: Text('OK'),
-          ),
-        ],
-      ),
-    );
+    Get.dialog(AlertDialog(
+      title: Text('${data.name} Violations'),
+      content: Text('Count: ${data.value}'),
+      actions: [TextButton(onPressed: Get.back, child: const Text('OK'))],
+    ));
   }
 
   void showZoneDetails(ZonePerformance zone) {
-    Get.dialog(
-      AlertDialog(
-        title: Text(zone.zone),
-        content: Text(
-            'Compliance: ${zone.compliance}%\n'
-                'Violations this week: ${zone.violations}\n'
-                'Status: ${zone.compliance >= 90 ? "Excellent" : zone.compliance >= 80 ? "Good" : "Needs Improvement"}\n\n'
-                'Most common violation: ${zone.id == "B" ? "Missing hard hat" : zone.id == "D" ? "Unauthorized access" : "PPE compliance"}'
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Get.back(),
-            child: Text('OK'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  List<AnalyticsData> get currentData {
-    return timeRange.value == 'month' ? monthlyData : weeklyData;
+    Get.dialog(AlertDialog(
+      title: Text(zone.zone),
+      content: Text('Compliance: ${zone.compliance}%\nViolations: ${zone.violations}'),
+      actions: [TextButton(onPressed: Get.back, child: const Text('OK'))],
+    ));
   }
 }

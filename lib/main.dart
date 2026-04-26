@@ -11,51 +11,45 @@ import 'binding/app_binding.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  // await Firebase.initializeApp();
 
   SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
 
-  // Initialize AuthService before runApp
+  // Check token before launching UI
   final authService = AuthService();
+  final isLoggedIn = await authService.isLoggedIn();
 
-  // Retrieve stored data
-  final key = await authService.getToken();
-
-  // Decide initial route
-  final String initialRoute = (key != null && key.isNotEmpty)
-      ? AppPages.INITIAL
-
-      : AppPages.INITIAL;
+  final String initialRoute = isLoggedIn ? AppPages.INITIAL : Routes.LOGIN;
 
   runApp(
     ScreenUtilInit(
-        designSize: const Size(360, 690),
-        minTextAdapt: true,
-        splitScreenMode: true,
-        builder: (context, child) {
-          return GetMaterialApp(
-            title: AppConfig.appName,
-            initialBinding: AppBinding(),
-            debugShowCheckedModeBanner: false,
-            builder: EasyLoading.init(),
-            defaultTransition: Transition.rightToLeft,
-            // Localization
-            translations: MyAppTranslation(),
-            locale: AppConfig.defaultLocale,
-            fallbackLocale: AppConfig.defaultLocale,
-            supportedLocales: MyAppTranslation.supportedLocales,
-            localizationsDelegates: GlobalMaterialLocalizations.delegates,
-            // Theme
-            themeMode: AppConfig.appDefaultTheme,
-            theme: R.theme.light,
-            darkTheme: R.theme.dark,
-            // End
-            initialRoute: initialRoute,
-            getPages: AppPages.routes,
-          );
-        }),
+      designSize: const Size(360, 690),
+      minTextAdapt: true,
+      splitScreenMode: true,
+      builder: (context, child) {
+        return GetMaterialApp(
+          title: AppConfig.appName,
+          initialBinding: AppBinding(),
+          debugShowCheckedModeBanner: false,
+          builder: EasyLoading.init(),
+          defaultTransition: Transition.rightToLeft,
+          // Localization
+          translations: MyAppTranslation(),
+          locale: AppConfig.defaultLocale,
+          fallbackLocale: AppConfig.defaultLocale,
+          supportedLocales: MyAppTranslation.supportedLocales,
+          localizationsDelegates: GlobalMaterialLocalizations.delegates,
+          // Theme
+          themeMode: AppConfig.appDefaultTheme,
+          theme: R.theme.light,
+          darkTheme: R.theme.dark,
+          // Routing
+          initialRoute: initialRoute,
+          getPages: AppPages.routes,
+        );
+      },
+    ),
   );
 }

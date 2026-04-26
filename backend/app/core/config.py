@@ -2,10 +2,13 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        extra="ignore",
+        protected_namespaces=("settings_",),  # silence model_path warning
+    )
 
     database_url: str
-    database_url_async: str
     jwt_secret: str
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 60
@@ -14,6 +17,8 @@ class Settings(BaseSettings):
     media_dir: str = "./media"
     model_path: str = "./model.pt"
     detector: str = "mock"
+    fps_target: int = 5
+    confidence_threshold: float = 0.35
 
     @property
     def cors_origin_list(self) -> list[str]:

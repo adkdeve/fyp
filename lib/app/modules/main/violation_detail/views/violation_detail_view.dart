@@ -1,3 +1,4 @@
+import 'package:construction_safety/common/widgets/build_image.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../data/models/violation_model.dart';
@@ -16,10 +17,10 @@ class ViolationDetailView extends GetView<ViolationDetailController> {
           if (violation == null) {
             return const Center(child: CircularProgressIndicator());
           }
-      
+
           final config = controller.getSeverityConfig(violation.severity);
           final recommendedActions = controller.getRecommendedActions(violation.type);
-      
+
           return Column(
             children: [
               // Header
@@ -34,7 +35,7 @@ class ViolationDetailView extends GetView<ViolationDetailController> {
                       _buildSeverityBanner(violation, config),
                       const SizedBox(height: 16),
                       // Evidence Photo
-                      _buildEvidencePhoto(violation),
+                      _buildEvidencePhoto(context, violation),
                       const SizedBox(height: 16),
                       // Location & Time Info
                       _buildIncidentInfo(violation),
@@ -74,19 +75,9 @@ class ViolationDetailView extends GetView<ViolationDetailController> {
                 children: [
                   const Text(
                     'Violation Details',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.black87,
-                    ),
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.black87),
                   ),
-                  Text(
-                    'ID: ${violation?.id ?? ""}',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey,
-                    ),
-                  ),
+                  Text('ID: ${violation?.id ?? ""}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
                 ],
               );
             }),
@@ -113,17 +104,10 @@ class ViolationDetailView extends GetView<ViolationDetailController> {
               const SizedBox(width: 8),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                decoration: BoxDecoration(
-                  color: config['badge'] as Color,
-                  borderRadius: BorderRadius.circular(20),
-                ),
+                decoration: BoxDecoration(color: config['badge'] as Color, borderRadius: BorderRadius.circular(20)),
                 child: Text(
                   '${violation.severity.name.toUpperCase()} PRIORITY',
-                  style: TextStyle(
-                    color: config['text'] as Color,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  style: TextStyle(color: config['text'] as Color, fontSize: 12, fontWeight: FontWeight.w600),
                 ),
               ),
             ],
@@ -131,26 +115,21 @@ class ViolationDetailView extends GetView<ViolationDetailController> {
           const SizedBox(height: 8),
           Text(
             violation.description,
-            style: TextStyle(
-              color: config['text'] as Color,
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-            ),
+            style: TextStyle(color: config['text'] as Color, fontSize: 18, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 4),
-          Text(
-            'Type: ${violation.type.name} Violation',
-            style: const TextStyle(
-              color: Colors.grey,
-              fontSize: 14,
-            ),
-          ),
+          Text('Type: ${violation.type.name} Violation', style: const TextStyle(color: Colors.grey, fontSize: 14)),
         ],
       ),
     );
   }
 
-  Widget _buildEvidencePhoto(ViolationModel violation) {
+  Widget _buildEvidencePhoto(BuildContext context, ViolationModel violation) {
+    final imageUrl = violation.imageUrl;
+    final confidenceText = violation.confidence != null
+        ? 'AI Detection Confidence: ${(violation.confidence! * 100).toStringAsFixed(0)}%'
+        : 'AI Detection Confidence: N/A';
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -167,73 +146,37 @@ class ViolationDetailView extends GetView<ViolationDetailController> {
               const SizedBox(width: 8),
               const Text(
                 'Visual Evidence',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black87,
-                ),
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.black87),
               ),
             ],
           ),
           const SizedBox(height: 12),
-          Container(
-            width: double.infinity,
-            height: 200,
-            decoration: BoxDecoration(
-              color: Colors.grey[900],
-              borderRadius: BorderRadius.circular(12),
-              image: const DecorationImage(
-                image: NetworkImage(
-                  'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=800&h=450&fit=crop',
-                ),
-                fit: BoxFit.cover,
-              ),
-            ),
-            child: Stack(
-              children: [
-                Positioned(
-                  top: 12,
-                  right: 12,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Colors.red,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 6,
-                          height: 6,
-                          decoration: const BoxDecoration(
-                            color: Colors.white,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                        const SizedBox(width: 4),
-                        const Text(
-                          'DETECTED',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 10,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: SizedBox(
+              width: double.infinity,
+              height: 200,
+              child: imageUrl != null
+                  ? buildImage(imageUrl, fit: BoxFit.cover, context: context)
+                  : _noSnapshotPlaceholder(),
             ),
           ),
           const SizedBox(height: 8),
-          const Text(
-            'AI Detection Confidence: 94%',
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.grey,
-            ),
-          ),
+          Text(confidenceText, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+        ],
+      ),
+    );
+  }
+
+  Widget _noSnapshotPlaceholder() {
+    return Container(
+      color: Colors.grey[900],
+      child: const Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.image_not_supported, color: Colors.white38, size: 40),
+          SizedBox(height: 8),
+          Text('No snapshot available', style: TextStyle(color: Colors.white38, fontSize: 12)),
         ],
       ),
     );
@@ -252,11 +195,7 @@ class ViolationDetailView extends GetView<ViolationDetailController> {
         children: [
           const Text(
             'Incident Information',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: Colors.black87,
-            ),
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.black87),
           ),
           const SizedBox(height: 12),
           Column(
@@ -287,7 +226,7 @@ class ViolationDetailView extends GetView<ViolationDetailController> {
                 iconColor: Colors.orange,
                 iconBgColor: Colors.orange[100]!,
                 title: 'Camera Source',
-                value: 'CAM-002',
+                value: violation.cameraId != null ? 'CAM-${violation.cameraId.toString().padLeft(3, '0')}' : 'Unknown',
               ),
             ],
           ),
@@ -309,10 +248,7 @@ class ViolationDetailView extends GetView<ViolationDetailController> {
         children: [
           Container(
             padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: iconBgColor,
-              borderRadius: BorderRadius.circular(12),
-            ),
+            decoration: BoxDecoration(color: iconBgColor, borderRadius: BorderRadius.circular(12)),
             child: Icon(icon, color: iconColor, size: 16),
           ),
           const SizedBox(width: 12),
@@ -320,21 +256,11 @@ class ViolationDetailView extends GetView<ViolationDetailController> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey,
-                  ),
-                ),
+                Text(title, style: const TextStyle(fontSize: 12, color: Colors.grey)),
                 const SizedBox(height: 2),
                 Text(
                   value,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.black87,
-                  ),
+                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Colors.black87),
                 ),
               ],
             ),
@@ -357,36 +283,26 @@ class ViolationDetailView extends GetView<ViolationDetailController> {
         children: [
           const Text(
             'Recommended Actions',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: Colors.black87,
-            ),
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.black87),
           ),
           const SizedBox(height: 12),
           Column(
             children: actions
                 .map(
                   (action) => Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Icon(Icons.check_circle, color: Colors.green[600], size: 16),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        action,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey,
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(Icons.check_circle, color: Colors.green[600], size: 16),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(action, style: const TextStyle(fontSize: 14, color: Colors.grey)),
                         ),
-                      ),
+                      ],
                     ),
-                  ],
-                ),
-              ),
-            )
+                  ),
+                )
                 .toList(),
           ),
         ],

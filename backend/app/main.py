@@ -1,9 +1,37 @@
+import asyncio
+import logging
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+import os
 
 from .core.config import settings
+from .api.router import api_router
+from .api.ws import router as ws_router
+from .workers.manager import worker_manager
 
-app = FastAPI(title="Construction Safety API", version="0.1.0")
+logging.basicConfig(level=logging.INFO)
+# Show DEBUG output from YOLO detector so we can see every class it detects
+logging.getLogger("app.workers.detectors.yolo").setLevel(logging.DEBUG)
+logger = logging.getLogger(__name__)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # ── startup ──────────────────────────────────────────────────────────
+    os.makedirs(settings.media_dir, exist_ok=True)
+    loop = asyncio.get_event_loop()
+    worker_manager.start_all(loop)
+    logger.info("✅ Construction Safety API started")
+    yield
+    # ── shutdown ─────────────────────────────────────────────────────────
+    worker_manager.stop_all()
+    logger.info("🛑 API shut down")
+
+
+app = FastAPI(title="Construction Safety API", version="1.0.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -13,7 +41,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Serve snapshot images
+os.makedirs(settings.media_dir, exist_ok=True)
+app.mount("/media", StaticFiles(directory=settings.media_dir), name="media")
+
+app.include_router(api_router)
+app.include_router(ws_router)
+
 
 @app.get("/health")
 def health():
-    return {"status": "ok"}
+    return {"status": "ok", "detector": settings.detector}

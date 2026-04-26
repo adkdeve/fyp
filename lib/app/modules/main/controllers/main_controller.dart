@@ -18,7 +18,6 @@ enum Screen {
 }
 
 class MainController extends GetxController {
-  // Reactive state using your existing models
   var activeScreen = Screen.dashboard.obs;
   var violations = <ViolationModel>[].obs;
   var selectedViolation = Rxn<ViolationModel>();
@@ -31,204 +30,88 @@ class MainController extends GetxController {
   ).obs;
   var autoDetection = true.obs;
 
-  @override
-  void onInit() {
-    super.onInit();
-    _initializeData();
-  }
+  // Screen navigation
+  void setActiveScreen(Screen screen) => activeScreen.value = screen;
+  void setSelectedViolation(ViolationModel? v) => selectedViolation.value = v;
+  void setSelectedCamera(CameraModel? c) => selectedCamera.value = c;
+  void setViolations(List<ViolationModel> list) => violations.assignAll(list);
+  void setCameras(List<CameraModel> list) => cameras.assignAll(list);
+  void setNotificationSettings(NotificationSettings s) => notificationSettings.value = s;
+  void setAutoDetection(bool enabled) => autoDetection.value = enabled;
 
-  void _initializeData() {
-    // Initialize violations using your ViolationModel
-    violations.assignAll([
-      ViolationModel(
-        id: "V001",
-        type: ViolationType.PPE,
-        severity: ViolationSeverity.high,
-        zone: "Zone B - Construction Area",
-        description: "Worker missing hard hat",
-        time: DateTime.now().subtract(const Duration(minutes: 2)),
-        status: ViolationStatus.active,
-      ),
-      ViolationModel(
-        id: "V002",
-        type: ViolationType.Unauthorized,
-        severity: ViolationSeverity.high,
-        zone: "Zone D - Scaffolding",
-        description: "Unauthorized personnel in restricted area",
-        time: DateTime.now().subtract(const Duration(minutes: 5)),
-        status: ViolationStatus.active,
-      ),
-      ViolationModel(
-        id: "V003",
-        type: ViolationType.PPE,
-        severity: ViolationSeverity.medium,
-        zone: "Zone A - Main Entrance",
-        description: "Worker missing safety vest",
-        time: DateTime.now().subtract(const Duration(minutes: 12)),
-        status: ViolationStatus.active,
-      ),
-    ]);
+  bool get showBottomNav => ![
+        Screen.violationDetail,
+        Screen.cameraManagement,
+        Screen.cameraFeed,
+        Screen.profile,
+        Screen.help,
+        Screen.terms,
+      ].contains(activeScreen.value);
 
-    // Initialize cameras using your CameraModel
-    cameras.assignAll([
-      CameraModel(
-        id: "CAM-001",
-        zone: "Zone A - Main Entrance",
-        status: "online",
-      ),
-      CameraModel(
-        id: "CAM-002",
-        zone: "Zone B - Construction Area",
-        status: "online",
-      ),
-      CameraModel(
-        id: "CAM-003",
-        zone: "Zone C - Storage Area",
-        status: "online",
-      ),
-      CameraModel(
-        id: "CAM-004",
-        zone: "Zone D - Scaffolding",
-        status: "online",
-      ),
-    ]);
-  }
+  int get activeViolationsCount =>
+      violations.where((v) => v.status == ViolationStatus.active).length;
 
-  // Screen navigation methods
-  void setActiveScreen(Screen screen) {
-    activeScreen.value = screen;
-  }
-
-  void setSelectedViolation(ViolationModel? violation) {
-    selectedViolation.value = violation;
-  }
-
-  void setSelectedCamera(CameraModel? camera) {
-    selectedCamera.value = camera;
-  }
-
-  void setViolations(List<ViolationModel> newViolations) {
-    violations.assignAll(newViolations);
-  }
-
-  void setCameras(List<CameraModel> newCameras) {
-    cameras.assignAll(newCameras);
-  }
-
-  void setNotificationSettings(NotificationSettings settings) {
-    notificationSettings.value = settings;
-  }
-
-  void setAutoDetection(bool enabled) {
-    autoDetection.value = enabled;
-  }
-
-  // Helper methods
-  int get activeViolationsCount {
-    return violations.where((v) => v.status == ViolationStatus.active).length;
-  }
-
-  bool get showBottomNav {
-    return ![
-      Screen.violationDetail,
-      Screen.cameraManagement,
-      Screen.cameraFeed,
-      Screen.profile,
-      Screen.help,
-      Screen.terms,
-    ].contains(activeScreen.value);
-  }
-
-  // Violation management methods
-  void acknowledgeViolation(String violationId, String acknowledgedBy) {
-    final index = violations.indexWhere((v) => v.id == violationId);
-    if (index != -1) {
-      final violation = violations[index];
-      violations[index] = violation.copyWith(
-        status: ViolationStatus.acknowledged,
-        acknowledgedBy: acknowledgedBy,
-      );
+  // Violation helpers
+  void acknowledgeViolation(String id, String by) {
+    final i = violations.indexWhere((v) => v.id == id);
+    if (i != -1) {
+      violations[i] = violations[i].copyWith(
+          status: ViolationStatus.acknowledged, acknowledgedBy: by);
       violations.refresh();
     }
   }
 
-  void resolveViolation(String violationId) {
-    final index = violations.indexWhere((v) => v.id == violationId);
-    if (index != -1) {
-      final violation = violations[index];
-      violations[index] = violation.copyWith(
-        status: ViolationStatus.resolved,
-      );
+  void resolveViolation(String id) {
+    final i = violations.indexWhere((v) => v.id == id);
+    if (i != -1) {
+      violations[i] = violations[i].copyWith(status: ViolationStatus.resolved);
       violations.refresh();
     }
   }
 
-  void dismissViolation(String violationId) {
-    final index = violations.indexWhere((v) => v.id == violationId);
-    if (index != -1) {
-      final violation = violations[index];
-      violations[index] = violation.copyWith(
-        status: ViolationStatus.dismissed,
-      );
+  void dismissViolation(String id) {
+    final i = violations.indexWhere((v) => v.id == id);
+    if (i != -1) {
+      violations[i] = violations[i].copyWith(status: ViolationStatus.dismissed);
       violations.refresh();
     }
   }
 
-  // Camera management methods
-  void updateCameraStatus(String cameraId, String status) {
-    final index = cameras.indexWhere((c) => c.id == cameraId);
-    if (index != -1) {
-      final camera = cameras[index];
-      cameras[index] = camera.copyWith(status: status);
+  // Camera helpers
+  void updateCameraStatus(int cameraId, String status) {
+    final i = cameras.indexWhere((c) => c.id == cameraId);
+    if (i != -1) {
+      cameras[i] = cameras[i].copyWith(status: status);
       cameras.refresh();
     }
   }
 
-  // Filter methods
-  List<ViolationModel> getViolationsByStatus(ViolationStatus status) {
-    return violations.where((v) => v.status == status).toList();
-  }
+  // Filters
+  List<ViolationModel> getViolationsByStatus(ViolationStatus s) =>
+      violations.where((v) => v.status == s).toList();
+  List<ViolationModel> getViolationsByType(ViolationType t) =>
+      violations.where((v) => v.type == t).toList();
+  List<ViolationModel> getViolationsBySeverity(ViolationSeverity s) =>
+      violations.where((v) => v.severity == s).toList();
+  List<CameraModel> getOnlineCameras() =>
+      cameras.where((c) => c.cameraStatus == CameraStatus.online).toList();
+  List<CameraModel> getOfflineCameras() =>
+      cameras.where((c) => c.cameraStatus == CameraStatus.offline).toList();
 
-  List<ViolationModel> getViolationsByType(ViolationType type) {
-    return violations.where((v) => v.type == type).toList();
-  }
-
-  List<ViolationModel> getViolationsBySeverity(ViolationSeverity severity) {
-    return violations.where((v) => v.severity == severity).toList();
-  }
-
-  List<CameraModel> getOnlineCameras() {
-    return cameras.where((c) => c.cameraStatus == CameraStatus.online).toList();
-  }
-
-  List<CameraModel> getOfflineCameras() {
-    return cameras.where((c) => c.cameraStatus == CameraStatus.offline).toList();
-  }
-
-  // Statistics methods
+  // Stats
   Map<ViolationType, int> getViolationTypeCounts() {
     final counts = <ViolationType, int>{};
-    for (final violation in violations) {
-      counts[violation.type] = (counts[violation.type] ?? 0) + 1;
+    for (final v in violations) {
+      counts[v.type] = (counts[v.type] ?? 0) + 1;
     }
     return counts;
   }
 
-  Map<ViolationSeverity, int> getViolationSeverityCounts() {
-    final counts = <ViolationSeverity, int>{};
-    for (final violation in violations) {
-      counts[violation.severity] = (counts[violation.severity] ?? 0) + 1;
-    }
-    return counts;
-  }
-
-  int getTotalResolvedViolations() {
-    return violations.where((v) => v.status == ViolationStatus.resolved).length;
-  }
+  int getTotalResolvedViolations() =>
+      violations.where((v) => v.status == ViolationStatus.resolved).length;
 
   double getResolutionRate() {
     if (violations.isEmpty) return 0.0;
-    final resolvedCount = getTotalResolvedViolations();
-    return (resolvedCount / violations.length) * 100;
+    return (getTotalResolvedViolations() / violations.length) * 100;
   }
 }

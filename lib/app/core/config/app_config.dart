@@ -10,8 +10,9 @@ class AppConfig {
   static ThemeMode appDefaultTheme = ThemeMode.light;
 
   // ───── API Config ─────
-  static const String baseUrl = 'https://pillojobfinder.devitcity.com/api/';
-  static const String imageBaseUrl = 'https://pillojobfinder.devitcity.com/storage/';
+  static const String baseUrl = 'http://192.168.1.10:8000/api/v1/';
+  static const String imageBaseUrl = 'http://192.168.1.10:8000';
+  static const String wsBaseUrl = 'ws://192.168.1.10:8000/ws';
 
   static const Duration apiTimeout = Duration(seconds: 15);
   static const int paginationLimit = 10;

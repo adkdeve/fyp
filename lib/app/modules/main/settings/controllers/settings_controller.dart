@@ -9,8 +9,12 @@ import 'package:construction_safety/app/modules/main/termsprivacy/views/termspri
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../data/models/settings_model.dart';
+import '../../../../data/services/auth_service.dart';
+import '../../../../routes/app_pages.dart';
 
 class SettingsController extends GetxController {
+  final AuthService _auth = Get.find<AuthService>();
+
   final notificationSettings = NotificationSettings(
     criticalAlerts: true,
     mediumAlerts: true,
@@ -22,15 +26,17 @@ class SettingsController extends GetxController {
   void toggleNotification(String key) {
     final current = notificationSettings.value;
     notificationSettings.value = current.copyWith(
-      criticalAlerts: key == 'criticalAlerts' ? !current.criticalAlerts : current.criticalAlerts,
-      mediumAlerts: key == 'mediumAlerts' ? !current.mediumAlerts : current.mediumAlerts,
-      dailySummary: key == 'dailySummary' ? !current.dailySummary : current.dailySummary,
+      criticalAlerts: key == 'criticalAlerts'
+          ? !current.criticalAlerts
+          : current.criticalAlerts,
+      mediumAlerts:
+          key == 'mediumAlerts' ? !current.mediumAlerts : current.mediumAlerts,
+      dailySummary:
+          key == 'dailySummary' ? !current.dailySummary : current.dailySummary,
     );
   }
 
-  void toggleAutoDetection() {
-    autoDetection.value = !autoDetection.value;
-  }
+  void toggleAutoDetection() => autoDetection.value = !autoDetection.value;
 
   void handleLogout() {
     Get.dialog(
@@ -38,19 +44,12 @@ class SettingsController extends GetxController {
         title: const Text('Log Out'),
         content: const Text('Are you sure you want to log out?'),
         actions: [
+          TextButton(onPressed: Get.back, child: const Text('Cancel')),
           TextButton(
-            onPressed: () => Get.back(),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () {
+            onPressed: () async {
               Get.back();
-              Get.snackbar(
-                'Logging out...',
-                'You will be redirected to the login screen.',
-                snackPosition: SnackPosition.BOTTOM,
-              );
-              // TODO: Implement actual logout logic
+              await _auth.logout();
+              Get.offAllNamed(Routes.LOGIN);
             },
             child: const Text('Log Out', style: TextStyle(color: Colors.red)),
           ),
@@ -59,31 +58,15 @@ class SettingsController extends GetxController {
     );
   }
 
-  void navigateToProfile() {
-    Get.to(
-      ProfileView(),
-      binding: ProfileBinding()
-    );
-  }
+  void navigateToProfile() =>
+      Get.to(ProfileView(), binding: ProfileBinding());
 
-  void navigateToCameraManagement() {
-    Get.to(
-        CameraManagementView(),
-      binding: CameraManagementBinding()
-    );
-  }
+  void navigateToCameraManagement() =>
+      Get.to(CameraManagementView(), binding: CameraManagementBinding());
 
-  void navigateToHelp() {
-    Get.to(
-        HelpSupportView(),
-        binding: HelpsupportBinding()
-    );
-  }
+  void navigateToHelp() =>
+      Get.to(HelpSupportView(), binding: HelpsupportBinding());
 
-  void navigateToTerms() {
-    Get.to(
-        TermsPrivacyView(),
-        binding: TermsprivacyBinding()
-    );
-  }
+  void navigateToTerms() =>
+      Get.to(TermsPrivacyView(), binding: TermsprivacyBinding());
 }

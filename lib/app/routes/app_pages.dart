@@ -1,4 +1,6 @@
 import 'package:get/get.dart';
+import '../modules/auth/login/bindings/login_binding.dart';
+import '../modules/auth/login/views/login_view.dart';
 import '../modules/main/alerts/bindings/alerts_binding.dart';
 import '../modules/main/alerts/views/alerts_view.dart';
 import '../modules/main/analytics/bindings/analytics_binding.dart';
@@ -32,6 +34,14 @@ class AppPages {
   static const INITIAL = Routes.MAIN;
 
   static final routes = [
+    // ── Auth ──────────────────────────────────────────────────────────────
+    GetPage(
+      name: _Paths.LOGIN,
+      page: () => const LoginView(),
+      binding: LoginBinding(),
+    ),
+
+    // ── Main Shell ────────────────────────────────────────────────────────
     GetPage(
       name: _Paths.MAIN,
       page: () => MainView(),

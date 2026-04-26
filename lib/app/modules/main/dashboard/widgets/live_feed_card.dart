@@ -57,7 +57,7 @@ class LiveFeedCard extends StatelessWidget {
     return GestureDetector(
       onTap: () => Get.to(
             () => const CameraFeedView(),
-        arguments: violation,
+        arguments: camera,
         binding: CameraFeedBinding(),
       ),
       child: Container(
