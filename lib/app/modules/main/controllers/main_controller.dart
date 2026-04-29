@@ -26,7 +26,6 @@ class MainController extends GetxController {
   var notificationSettings = NotificationSettings(
     criticalAlerts: true,
     mediumAlerts: true,
-    dailySummary: false,
   ).obs;
   var autoDetection = true.obs;
 
@@ -36,17 +35,18 @@ class MainController extends GetxController {
   void setSelectedCamera(CameraModel? c) => selectedCamera.value = c;
   void setViolations(List<ViolationModel> list) => violations.assignAll(list);
   void setCameras(List<CameraModel> list) => cameras.assignAll(list);
-  void setNotificationSettings(NotificationSettings s) => notificationSettings.value = s;
+  void setNotificationSettings(NotificationSettings s) =>
+      notificationSettings.value = s;
   void setAutoDetection(bool enabled) => autoDetection.value = enabled;
 
   bool get showBottomNav => ![
-        Screen.violationDetail,
-        Screen.cameraManagement,
-        Screen.cameraFeed,
-        Screen.profile,
-        Screen.help,
-        Screen.terms,
-      ].contains(activeScreen.value);
+    Screen.violationDetail,
+    Screen.cameraManagement,
+    Screen.cameraFeed,
+    Screen.profile,
+    Screen.help,
+    Screen.terms,
+  ].contains(activeScreen.value);
 
   int get activeViolationsCount =>
       violations.where((v) => v.status == ViolationStatus.active).length;
@@ -56,7 +56,9 @@ class MainController extends GetxController {
     final i = violations.indexWhere((v) => v.id == id);
     if (i != -1) {
       violations[i] = violations[i].copyWith(
-          status: ViolationStatus.acknowledged, acknowledgedBy: by);
+        status: ViolationStatus.acknowledged,
+        acknowledgedBy: by,
+      );
       violations.refresh();
     }
   }

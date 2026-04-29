@@ -11,6 +11,10 @@ class UserModel {
   final String? gender;
   final String? phoneNumber;
   final String? image;
+  final String? company;
+  final String? location;
+  final bool notifyCriticalAlerts;
+  final bool notifyMediumAlerts;
 
   UserModel({
     required this.id,
@@ -25,6 +29,10 @@ class UserModel {
     this.gender,
     this.phoneNumber,
     this.image,
+    this.company,
+    this.location,
+    this.notifyCriticalAlerts = true,
+    this.notifyMediumAlerts = true,
   });
 
   /// Full name convenience getter
@@ -32,11 +40,12 @@ class UserModel {
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
     // Our backend sends 'name' as a single field; split it for compat.
-    final rawName = json['name'] as String? ?? '';
+    final rawName = (json['full_name'] ?? json['name']) as String? ?? '';
     final parts = rawName.split(' ');
-    final first = json['first_name'] as String? ??
-        (parts.isNotEmpty ? parts.first : '');
-    final last = json['last_name'] as String? ??
+    final first =
+        json['first_name'] as String? ?? (parts.isNotEmpty ? parts.first : '');
+    final last =
+        json['last_name'] as String? ??
         (parts.length > 1 ? parts.sublist(1).join(' ') : '');
 
     return UserModel(
@@ -53,23 +62,34 @@ class UserModel {
       dob: json['dob']?.toString(),
       gender: json['gender']?.toString(),
       phoneNumber: (json['phone_number'] ?? json['phone'])?.toString(),
-      image: json['image']?.toString(),
+      image: (json['avatar_url'] ?? json['image'])?.toString(),
+      company: json['company']?.toString(),
+      location: json['location']?.toString(),
+      notifyCriticalAlerts: (json['notify_critical_alerts'] as bool?) ?? true,
+      notifyMediumAlerts: (json['notify_medium_alerts'] as bool?) ?? true,
     );
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'name': name,
-        'first_name': firstName,
-        'last_name': lastName,
-        'email': email,
-        'role': role,
-        'country': country,
-        'industries': industries,
-        'status': status,
-        'dob': dob,
-        'gender': gender,
-        'phone_number': phoneNumber,
-        'image': image,
-      };
+    'id': id,
+    'name': name,
+    'full_name': name,
+    'first_name': firstName,
+    'last_name': lastName,
+    'email': email,
+    'role': role,
+    'country': country,
+    'industries': industries,
+    'status': status,
+    'dob': dob,
+    'gender': gender,
+    'phone_number': phoneNumber,
+    'phone': phoneNumber,
+    'image': image,
+    'avatar_url': image,
+    'company': company,
+    'location': location,
+    'notify_critical_alerts': notifyCriticalAlerts,
+    'notify_medium_alerts': notifyMediumAlerts,
+  };
 }

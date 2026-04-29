@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import '../../../../data/models/camera_model.dart';
 import '../../../../data/models/violation_model.dart';
 import '../../../../data/services/safety_api_service.dart';
+import '../../controllers/main_controller.dart';
 
 class DashboardController extends GetxController {
   final SafetyApiService _api = SafetyApiService.to;
@@ -16,6 +17,8 @@ class DashboardController extends GetxController {
   // Summary stats from backend
   final totalViolationsToday = 0.obs;
   final resolvedToday = 0.obs;
+  final totalWorkersValue = 28.obs;
+  final safeWorkersValue = 28.obs;
   final isLoading = false.obs;
 
   Timer? _clockTimer;
@@ -40,7 +43,11 @@ class DashboardController extends GetxController {
   Future<void> fetchAll() async {
     isLoading.value = true;
     try {
-      await Future.wait([fetchCameras(), fetchRecentViolations(), fetchSummary()]);
+      await Future.wait([
+        fetchCameras(),
+        fetchRecentViolations(),
+        fetchSummary(),
+      ]);
     } finally {
       isLoading.value = false;
     }
@@ -51,8 +58,15 @@ class DashboardController extends GetxController {
       final raw = await _api.getCameras(enabledOnly: true);
       cameras.assignAll(raw.map((e) => CameraModel.fromJson(e)).toList());
       if (cameras.isNotEmpty) selectedCamera.value = cameras.first;
+      if (Get.isRegistered<MainController>()) {
+        Get.find<MainController>().setCameras(cameras);
+      }
     } catch (e) {
-      Get.snackbar('Camera Error', e.toString(), snackPosition: SnackPosition.BOTTOM);
+      Get.snackbar(
+        'Camera Error',
+        e.toString(),
+        snackPosition: SnackPosition.BOTTOM,
+      );
     }
   }
 
@@ -60,6 +74,9 @@ class DashboardController extends GetxController {
     try {
       final raw = await _api.getViolations(status: 'open', limit: 20);
       violations.assignAll(raw.map((e) => ViolationModel.fromJson(e)).toList());
+      if (Get.isRegistered<MainController>()) {
+        Get.find<MainController>().setViolations(violations);
+      }
     } catch (e) {
       // Non-fatal — dashboard still shows cameras
     }
@@ -70,6 +87,8 @@ class DashboardController extends GetxController {
       final s = await _api.getSummary(days: 1);
       totalViolationsToday.value = (s['total_violations'] as int?) ?? 0;
       resolvedToday.value = (s['resolved'] as int?) ?? 0;
+      totalWorkersValue.value = (s['total_workers'] as int?) ?? 28;
+      safeWorkersValue.value = (s['safe_workers'] as int?) ?? 28;
     } catch (_) {}
   }
 
@@ -79,12 +98,11 @@ class DashboardController extends GetxController {
   }
 
   // ── Computed stats ─────────────────────────────────────────────────────────
-  int get totalWorkers => 28; // TODO: pull from /api/v1/workers when endpoint added
+  int get totalWorkers => totalWorkersValue.value;
 
   int get activeViolationsCount => violations.length;
 
-  int get safeWorkers =>
-      (totalWorkers - activeViolationsCount).clamp(0, totalWorkers);
+  int get safeWorkers => safeWorkersValue.value.clamp(0, totalWorkers);
 
   int get complianceRate =>
       totalWorkers == 0 ? 100 : ((safeWorkers / totalWorkers) * 100).round();

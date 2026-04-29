@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import '../controllers/profile_controller.dart';
 
@@ -7,38 +8,45 @@ class ProfileView extends GetView<ProfileController> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF9FAFB), // bg-gray-50
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Header
-            _buildHeader(),
-            // Content
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  children: [
-                    // Profile Picture
-                    _buildProfilePicture(),
-                    const SizedBox(height: 16),
-                    // Personal Information
-                    _buildPersonalInformation(),
-                    const SizedBox(height: 16),
-                    // Work Information
-                    _buildWorkInformation(),
-                    const SizedBox(height: 16),
-                    // Account Stats
-                    _buildAccountStats(),
-                    const SizedBox(height: 16),
-                    // Danger Zone
-                    _buildDangerZone(),
-                  ],
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.dark.copyWith(
+        statusBarIconBrightness: Brightness.dark,
+        statusBarBrightness: Brightness.light,
+        statusBarColor: Colors.white,
+      ),
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF9FAFB), // bg-gray-50
+        body: SafeArea(
+          child: Column(
+            children: [
+              // Header
+              _buildHeader(),
+              // Content
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    children: [
+                      // Profile Picture
+                      _buildProfilePicture(),
+                      const SizedBox(height: 16),
+                      // Personal Information
+                      _buildPersonalInformation(),
+                      const SizedBox(height: 16),
+                      // Work Information
+                      _buildWorkInformation(),
+                      const SizedBox(height: 16),
+                      // Account Stats
+                      _buildAccountStats(),
+                      const SizedBox(height: 16),
+                      // Danger Zone
+                      _buildDangerZone(),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -70,10 +78,7 @@ class ProfileView extends GetView<ProfileController> {
                 ),
                 const Text(
                   'Manage your account information',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Color(0xFF6B7280),
-                  ),
+                  style: TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
                 ),
               ],
             ),
@@ -140,27 +145,10 @@ class ProfileView extends GetView<ProfileController> {
             const SizedBox(height: 16),
             if (controller.isEditing.value) ...[
               TextButton(
-                onPressed: () {
-                  // Handle change photo
-                  Get.dialog(
-                    AlertDialog(
-                      title: const Text('Change Photo'),
-                      content: const Text('Photo change functionality would go here.'),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Get.back(),
-                          child: const Text('OK'),
-                        ),
-                      ],
-                    ),
-                  );
-                },
+                onPressed: controller.changePhoto,
                 child: const Text(
                   'Change Photo',
-                  style: TextStyle(
-                    color: Color(0xFF2563EB),
-                    fontSize: 14,
-                  ),
+                  style: TextStyle(color: Color(0xFF2563EB), fontSize: 14),
                 ),
               ),
             ],
@@ -311,33 +299,33 @@ class ProfileView extends GetView<ProfileController> {
             const SizedBox(height: 8),
             controller.isEditing.value
                 ? TextFormField(
-              initialValue: controller.formData[field],
-              onChanged: (value) => controller.updateField(field, value),
-              decoration: InputDecoration(
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 8,
-                ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: const BorderSide(color: Color(0xFFD1D5DB)),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: const BorderSide(color: Color(0xFF2563EB)),
-                ),
-              ),
-            )
+                    initialValue: controller.formData[field] ?? '',
+                    onChanged: (value) => controller.updateField(field, value),
+                    decoration: InputDecoration(
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(color: Color(0xFFD1D5DB)),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(color: Color(0xFF2563EB)),
+                      ),
+                    ),
+                  )
                 : SizedBox(
-              width: double.infinity, // Make text take full width
-              child: Text(
-                controller.formData[field]!,
-                style: const TextStyle(
-                  fontSize: 14,
-                  color: Color(0xFF111827),
-                ),
-              ),
-            ),
+                    width: double.infinity, // Make text take full width
+                    child: Text(
+                      controller.formData[field] ?? '',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: Color(0xFF111827),
+                      ),
+                    ),
+                  ),
           ],
         ),
       );
@@ -372,41 +360,43 @@ class ProfileView extends GetView<ProfileController> {
             ),
           ),
           // Stats Grid
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: GridView.count(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              crossAxisCount: 2,
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
-              childAspectRatio: 1.5,
-              children: [
-                _buildStatCard(
-                  value: '156',
-                  label: 'Violations Resolved',
-                  color: const Color(0xFFDBEAFE),
-                  textColor: const Color(0xFF2563EB),
-                ),
-                _buildStatCard(
-                  value: '89%',
-                  label: 'Avg Response Rate',
-                  color: const Color(0xFFDCFCE7),
-                  textColor: const Color(0xFF16A34A),
-                ),
-                _buildStatCard(
-                  value: '4',
-                  label: 'Active Zones',
-                  color: const Color(0xFFF3E8FF),
-                  textColor: const Color(0xFF9333EA),
-                ),
-                _buildStatCard(
-                  value: '2.3s',
-                  label: 'Avg Response Time',
-                  color: const Color(0xFFFFEDD5),
-                  textColor: const Color(0xFFEA580C),
-                ),
-              ],
+          Obx(
+            () => Padding(
+              padding: const EdgeInsets.all(16),
+              child: GridView.count(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                crossAxisCount: 2,
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
+                childAspectRatio: 1.5,
+                children: [
+                  _buildStatCard(
+                    value: controller.formData['violations_resolved'] ?? '0',
+                    label: 'Violations Resolved',
+                    color: const Color(0xFFDBEAFE),
+                    textColor: const Color(0xFF2563EB),
+                  ),
+                  _buildStatCard(
+                    value: controller.formData['avg_response_rate'] ?? '0%',
+                    label: 'Avg Response Rate',
+                    color: const Color(0xFFDCFCE7),
+                    textColor: const Color(0xFF16A34A),
+                  ),
+                  _buildStatCard(
+                    value: controller.formData['active_zones'] ?? '0',
+                    label: 'Active Zones',
+                    color: const Color(0xFFF3E8FF),
+                    textColor: const Color(0xFF9333EA),
+                  ),
+                  _buildStatCard(
+                    value: controller.formData['avg_response_time'] ?? '0.0s',
+                    label: 'Avg Response Time',
+                    color: const Color(0xFFFFEDD5),
+                    textColor: const Color(0xFFEA580C),
+                  ),
+                ],
+              ),
             ),
           ),
         ],
@@ -441,10 +431,7 @@ class ProfileView extends GetView<ProfileController> {
           Text(
             label,
             textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 12,
-              color: Color(0xFF6B7280),
-            ),
+            style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
           ),
         ],
       ),
@@ -487,20 +474,7 @@ class ProfileView extends GetView<ProfileController> {
                 SizedBox(
                   width: double.infinity,
                   child: OutlinedButton(
-                    onPressed: () {
-                      Get.dialog(
-                        AlertDialog(
-                          title: const Text('Change Password'),
-                          content: const Text('Password change functionality would go here.'),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Get.back(),
-                              child: const Text('OK'),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
+                    onPressed: controller.showChangePasswordDialog,
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       side: const BorderSide(color: Color(0xFFD1D5DB)),
@@ -508,9 +482,7 @@ class ProfileView extends GetView<ProfileController> {
                     ),
                     child: const Text(
                       'Change Password',
-                      style: TextStyle(
-                        color: Color(0xFF374151),
-                      ),
+                      style: TextStyle(color: Color(0xFF374151)),
                     ),
                   ),
                 ),
@@ -518,30 +490,7 @@ class ProfileView extends GetView<ProfileController> {
                 SizedBox(
                   width: double.infinity,
                   child: OutlinedButton(
-                    onPressed: () {
-                      Get.dialog(
-                        AlertDialog(
-                          title: const Text('Delete Account'),
-                          content: const Text('Are you sure you want to delete your account? This action cannot be undone.'),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Get.back(),
-                              child: const Text('Cancel'),
-                            ),
-                            TextButton(
-                              onPressed: () {
-                                Get.back();
-                                // Add account deletion logic here
-                              },
-                              child: const Text(
-                                'Delete',
-                                style: TextStyle(color: Colors.red),
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
+                    onPressed: controller.showDeleteAccountDialog,
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       side: const BorderSide(color: Color(0xFFFECACA)),
@@ -549,9 +498,7 @@ class ProfileView extends GetView<ProfileController> {
                     ),
                     child: const Text(
                       'Delete Account',
-                      style: TextStyle(
-                        color: Color(0xFFDC2626),
-                      ),
+                      style: TextStyle(color: Color(0xFFDC2626)),
                     ),
                   ),
                 ),

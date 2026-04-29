@@ -1,11 +1,12 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from ..core.db import get_db
-from ..models.camera import Camera
+from ..models.camera import Camera, CameraStatus
 from ..models.user import User
 from ..schemas.camera import CameraCreate, CameraUpdate, CameraOut
-from .deps import require_admin, get_current_user
+from .deps import require_supervisor, get_current_user
 from ..workers.manager import worker_manager
 
 router = APIRouter(prefix="/cameras", tags=["Cameras"])
@@ -14,13 +15,23 @@ router = APIRouter(prefix="/cameras", tags=["Cameras"])
 @router.get("", response_model=list[CameraOut])
 def list_cameras(
     enabled_only: bool = False,
+    enabled: bool | None = Query(None),
+    status: CameraStatus | None = Query(None),
+    q: str | None = Query(None),
     db: Session = Depends(get_db),
     _: User = Depends(get_current_user),
 ):
-    q = db.query(Camera)
+    query = db.query(Camera)
     if enabled_only:
-        q = q.filter(Camera.enabled == True)
-    return q.order_by(Camera.name).all()
+        query = query.filter(Camera.enabled == True)
+    if enabled is not None:
+        query = query.filter(Camera.enabled == enabled)
+    if status is not None:
+        query = query.filter(Camera.status == status)
+    if q:
+        like = f"%{q.strip()}%"
+        query = query.filter(or_(Camera.name.ilike(like), Camera.location.ilike(like)))
+    return query.order_by(Camera.name).all()
 
 
 @router.get("/{camera_id}", response_model=CameraOut)
@@ -39,7 +50,7 @@ def get_camera(
 def create_camera(
     body: CameraCreate,
     db: Session = Depends(get_db),
-    _: User = Depends(require_admin),
+    _: User = Depends(require_supervisor),
 ):
     camera = Camera(**body.model_dump())
     db.add(camera)
@@ -56,7 +67,7 @@ def update_camera(
     camera_id: int,
     body: CameraUpdate,
     db: Session = Depends(get_db),
-    _: User = Depends(require_admin),
+    _: User = Depends(require_supervisor),
 ):
     camera = db.get(Camera, camera_id)
     if not camera:
@@ -77,7 +88,7 @@ def update_camera(
 def delete_camera(
     camera_id: int,
     db: Session = Depends(get_db),
-    _: User = Depends(require_admin),
+    _: User = Depends(require_supervisor),
 ):
     camera = db.get(Camera, camera_id)
     if not camera:

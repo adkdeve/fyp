@@ -9,9 +9,10 @@ class SettingsView extends GetView<SettingsController> {
   @override
   Widget build(BuildContext context) {
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.light.copyWith(
-          statusBarIconBrightness: Brightness.dark,
-          statusBarColor: Colors.white
+      value: SystemUiOverlayStyle.dark.copyWith(
+        statusBarIconBrightness: Brightness.dark,
+        statusBarBrightness: Brightness.light,
+        statusBarColor: Colors.white,
       ),
       child: SafeArea(
         child: Scaffold(
@@ -68,9 +69,7 @@ class SettingsView extends GetView<SettingsController> {
           const SizedBox(height: 4),
           Text(
             'Manage your app preferences',
-            style: Get.textTheme.bodyMedium?.copyWith(
-              color: Colors.grey[600],
-            ),
+            style: Get.textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
           ),
         ],
       ),
@@ -108,7 +107,18 @@ class SettingsView extends GetView<SettingsController> {
               ),
             ),
             // Profile Content
-            Container(
+            Obx(() {
+              final user = controller.currentUser.value;
+              final initials = (user?.name.isNotEmpty == true)
+                  ? user!.name
+                        .split(' ')
+                        .where((p) => p.isNotEmpty)
+                        .take(2)
+                        .map((p) => p[0])
+                        .join()
+                        .toUpperCase()
+                  : 'U';
+              return Container(
                 padding: const EdgeInsets.all(16),
                 child: Row(
                   children: [
@@ -124,10 +134,10 @@ class SettingsView extends GetView<SettingsController> {
                         ),
                         shape: BoxShape.circle,
                       ),
-                      child: const Center(
+                      child: Center(
                         child: Text(
-                          'JD',
-                          style: TextStyle(
+                          initials,
+                          style: const TextStyle(
                             color: Colors.white,
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
@@ -142,7 +152,7 @@ class SettingsView extends GetView<SettingsController> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'John Doe',
+                            user?.name.isNotEmpty == true ? user!.name : 'User',
                             style: Get.textTheme.titleMedium?.copyWith(
                               color: Colors.grey[900],
                               fontWeight: FontWeight.w600,
@@ -150,14 +160,14 @@ class SettingsView extends GetView<SettingsController> {
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            'Site Supervisor',
+                            user?.role ?? 'supervisor',
                             style: Get.textTheme.bodyMedium?.copyWith(
                               color: Colors.grey[600],
                             ),
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            'john.doe@construction.com',
+                            user?.email ?? '',
                             style: Get.textTheme.bodySmall?.copyWith(
                               color: Colors.grey[500],
                             ),
@@ -165,10 +175,15 @@ class SettingsView extends GetView<SettingsController> {
                         ],
                       ),
                     ),
-                    const Icon(Icons.chevron_right, color: Colors.grey, size: 20),
+                    const Icon(
+                      Icons.chevron_right,
+                      color: Colors.grey,
+                      size: 20,
+                    ),
                   ],
                 ),
-              ),
+              );
+            }),
           ],
         ),
       ),
@@ -215,7 +230,8 @@ class SettingsView extends GetView<SettingsController> {
                   title: 'Critical Alerts',
                   subtitle: 'High priority violations',
                   value: settings.criticalAlerts,
-                  onChanged: (_) => controller.toggleNotification('criticalAlerts'),
+                  onChanged: (_) =>
+                      controller.toggleNotification('criticalAlerts'),
                 ),
                 _buildNotificationItem(
                   icon: Icons.notifications,
@@ -224,16 +240,8 @@ class SettingsView extends GetView<SettingsController> {
                   title: 'Medium Alerts',
                   subtitle: 'Standard violations',
                   value: settings.mediumAlerts,
-                  onChanged: (_) => controller.toggleNotification('mediumAlerts'),
-                ),
-                _buildNotificationItem(
-                  icon: Icons.notifications,
-                  iconColor: Colors.blue,
-                  iconBgColor: Colors.blue[100]!,
-                  title: 'Daily Summary',
-                  subtitle: 'End of day report',
-                  value: settings.dailySummary,
-                  onChanged: (_) => controller.toggleNotification('dailySummary'),
+                  onChanged: (_) =>
+                      controller.toggleNotification('mediumAlerts'),
                 ),
               ],
             );
@@ -285,20 +293,13 @@ class SettingsView extends GetView<SettingsController> {
                 const SizedBox(height: 2),
                 Text(
                   subtitle,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey[600],
-                  ),
+                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                 ),
               ],
             ),
           ),
           // Switch
-          Switch(
-            value: value,
-            onChanged: onChanged,
-            activeColor: Colors.blue,
-          ),
+          Switch(value: value, onChanged: onChanged, activeColor: Colors.blue),
         ],
       ),
     );
@@ -341,7 +342,9 @@ class SettingsView extends GetView<SettingsController> {
                 child: Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    border: Border(bottom: BorderSide(color: Colors.grey[200]!)),
+                    border: Border(
+                      bottom: BorderSide(color: Colors.grey[200]!),
+                    ),
                   ),
                   child: Row(
                     children: [
@@ -351,7 +354,11 @@ class SettingsView extends GetView<SettingsController> {
                           color: Colors.purple[100],
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: Icon(Icons.camera_alt, color: Colors.purple[600], size: 20),
+                        child: Icon(
+                          Icons.camera_alt,
+                          color: Colors.purple[600],
+                          size: 20,
+                        ),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
@@ -367,66 +374,27 @@ class SettingsView extends GetView<SettingsController> {
                               ),
                             ),
                             const SizedBox(height: 2),
-                            Text(
-                              '4 active cameras',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey[600],
+                            Obx(
+                              () => Text(
+                                '${controller.cameraCount.value} active cameras',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey[600],
+                                ),
                               ),
                             ),
                           ],
                         ),
                       ),
-                      const Icon(Icons.chevron_right, color: Colors.grey, size: 20),
+                      const Icon(
+                        Icons.chevron_right,
+                        color: Colors.grey,
+                        size: 20,
+                      ),
                     ],
                   ),
                 ),
               ),
-              // Auto Detection
-              Obx(() => Container(
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.green[100],
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Icon(Icons.security, color: Colors.green[600], size: 20),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Auto Detection',
-                            style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                              color: Colors.black87,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            'AI-powered monitoring',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey[600],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Switch(
-                      value: controller.autoDetection.value,
-                      onChanged: (_) => controller.toggleAutoDetection(),
-                      activeColor: Colors.blue,
-                    ),
-                  ],
-                ),
-              )),
             ],
           ),
         ],
@@ -509,7 +477,11 @@ class SettingsView extends GetView<SettingsController> {
                 color: Colors.grey[100],
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Icon(icon, color: titleColor == Colors.red ? Colors.red : Colors.grey[600], size: 20),
+              child: Icon(
+                icon,
+                color: titleColor == Colors.red ? Colors.red : Colors.grey[600],
+                size: 20,
+              ),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -534,26 +506,17 @@ class SettingsView extends GetView<SettingsController> {
       children: [
         Text(
           'Version 1.0.0',
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.grey,
-          ),
+          style: TextStyle(fontSize: 12, color: Colors.grey),
         ),
         SizedBox(height: 4),
         Text(
           'AI Construction Safety Monitor',
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.grey,
-          ),
+          style: TextStyle(fontSize: 12, color: Colors.grey),
         ),
         SizedBox(height: 4),
         Text(
           '© 2024 BuildSafe Technologies',
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.grey,
-          ),
+          style: TextStyle(fontSize: 12, color: Colors.grey),
         ),
       ],
     );

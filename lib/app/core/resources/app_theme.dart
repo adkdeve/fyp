@@ -94,7 +94,7 @@ class AppThemeData {
       colorScheme: colorScheme,
       primaryColor: colorScheme.primary,
       scaffoldBackgroundColor: colorScheme.background,
-      appBarTheme: base.appBarTheme.copyWith(backgroundColor: white, foregroundColor: black),
+      appBarTheme: base.appBarTheme.copyWith(backgroundColor: Colors.transparent, foregroundColor: black),
       bottomAppBarTheme: base.bottomAppBarTheme.copyWith(color: primary),
       // bottomNavigationBarTheme: base.bottomNavigationBarTheme.copyWith(
       //   backgroundColor: orange,

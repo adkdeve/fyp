@@ -1,8 +1,9 @@
-import 'dart:ui';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../data/models/analytics_model.dart';
 import '../../../../data/services/safety_api_service.dart';
+import '../../../../core/config/app_config.dart';
 
 class AnalyticsController extends GetxController {
   final SafetyApiService _api = SafetyApiService.to;
@@ -22,6 +23,10 @@ class AnalyticsController extends GetxController {
   final totalViolations = 0.obs;
   final complianceRate = 0.obs;
   final avgResponseTime = 0.0.obs;
+  final activeZones = 0.obs;
+  final detectionAccuracy = 94.obs;
+  final falsePositiveRate = 0.0.obs;
+  final processingFps = 30.obs;
 
   static const _typeColors = {
     'PPE': Color(0xFF3b82f6),
@@ -47,8 +52,72 @@ class AnalyticsController extends GetxController {
         fetchByCamera(days: days),
       ]);
     } finally {
+      if (AppConfig.enableMockFallback &&
+          totalViolations.value == 0 &&
+          weeklyData.isEmpty) {
+        _loadMockAnalytics();
+      }
       isLoading.value = false;
     }
+  }
+
+  void _loadMockAnalytics() {
+    totalViolations.value = 12;
+    activeViolations.value = 3;
+    complianceRate.value = 89;
+    avgResponseTime.value = 2.4;
+    activeZones.value = 4;
+    weeklyData.assignAll([
+      AnalyticsData(period: 'Mon', violations: 2),
+      AnalyticsData(period: 'Tue', violations: 1),
+      AnalyticsData(period: 'Wed', violations: 4),
+      AnalyticsData(period: 'Thu', violations: 0),
+      AnalyticsData(period: 'Fri', violations: 3),
+      AnalyticsData(period: 'Sat', violations: 1),
+      AnalyticsData(period: 'Sun', violations: 1),
+    ]);
+    violationTypeData.assignAll([
+      ViolationTypeData(name: 'PPE', value: 7, color: _typeColors['PPE']!),
+      ViolationTypeData(
+        name: 'Unauthorized',
+        value: 2,
+        color: _typeColors['Unauthorized']!,
+      ),
+      ViolationTypeData(
+        name: 'Hazardous',
+        value: 2,
+        color: _typeColors['Hazardous']!,
+      ),
+      ViolationTypeData(
+        name: 'Material',
+        value: 1,
+        color: _typeColors['Material']!,
+      ),
+    ]);
+    complianceTrend.assignAll(
+      weeklyData
+          .map(
+            (e) => ComplianceTrend(
+              week: e.period,
+              compliance: (100 - e.violations * 2).clamp(0, 100).toInt(),
+            ),
+          )
+          .toList(),
+    );
+    zonePerformance.assignAll([
+      ZonePerformance(
+        zone: 'Gate Camera',
+        compliance: 92,
+        violations: 2,
+        id: '1',
+      ),
+      ZonePerformance(
+        zone: 'Crane Zone',
+        compliance: 86,
+        violations: 4,
+        id: '2',
+      ),
+    ]);
   }
 
   Future<void> fetchSummary({int days = 7}) async {
@@ -58,8 +127,14 @@ class AnalyticsController extends GetxController {
       activeViolations.value = (s['open_violations'] as int?) ?? 0;
       final safe = (s['safe_workers'] as int?) ?? 25;
       final total = (s['total_workers'] as int?) ?? 28;
-      complianceRate.value =
-          total == 0 ? 100 : ((safe / total) * 100).round();
+      complianceRate.value = total == 0 ? 100 : ((safe / total) * 100).round();
+      avgResponseTime.value =
+          (s['avg_response_time'] as num?)?.toDouble() ?? 0.0;
+      activeZones.value = (s['active_zones'] as int?) ?? 0;
+      detectionAccuracy.value = (s['detection_accuracy'] as int?) ?? 94;
+      falsePositiveRate.value =
+          (s['false_positive_rate'] as num?)?.toDouble() ?? 0.0;
+      processingFps.value = (s['processing_fps'] as int?) ?? 30;
     } catch (_) {}
   }
 
@@ -78,6 +153,15 @@ class AnalyticsController extends GetxController {
       } else {
         monthlyData.assignAll(parsed);
       }
+      complianceTrend.assignAll(
+        parsed.map((e) {
+          final compliance = (100 - (e.violations * 2)).clamp(0, 100);
+          return ComplianceTrend(
+            week: e.period,
+            compliance: compliance.toInt(),
+          );
+        }).toList(),
+      );
     } catch (_) {}
   }
 
@@ -103,7 +187,9 @@ class AnalyticsController extends GetxController {
       final parsed = raw.asMap().entries.map((entry) {
         final m = entry.value as Map<String, dynamic>;
         final count = (m['count'] as int?) ?? 0;
-        final name = m['camera_name'] as String? ?? 'Camera ${entry.key + 1}';
+        final name =
+            (m['camera_name'] ?? m['camera']) as String? ??
+            'Camera ${entry.key + 1}';
         final compliance = count == 0 ? 100 : (100 - (count * 2)).clamp(0, 100);
         return ZonePerformance(
           zone: name,
@@ -137,20 +223,41 @@ class AnalyticsController extends GetxController {
   // ── UI actions ─────────────────────────────────────────────────────────────
   void setTimeRange(String range) {
     timeRange.value = range;
-    final days = range == 'month' ? 30 : range == 'year' ? 365 : 7;
+    final days = range == 'month'
+        ? 30
+        : range == 'year'
+        ? 365
+        : 7;
     fetchAll(days: days);
   }
 
   List<AnalyticsData> get currentData =>
       timeRange.value == 'month' ? monthlyData : weeklyData;
 
-  void handleExport() {
-    Get.snackbar(
-      'Exporting Analytics Report',
-      'Generating PDF with live data...',
-      snackPosition: SnackPosition.BOTTOM,
-      duration: const Duration(seconds: 3),
-    );
+  Future<void> handleExport() async {
+    try {
+      final days = timeRange.value == 'month'
+          ? 30
+          : timeRange.value == 'year'
+          ? 365
+          : 7;
+      final bytes = await _api.exportAnalytics(days: days);
+      final file = File(
+        '${Directory.systemTemp.path}${Platform.pathSeparator}analytics_${DateTime.now().millisecondsSinceEpoch}.csv',
+      );
+      await file.writeAsBytes(bytes);
+      Get.snackbar(
+        'Export Ready',
+        'Saved to ${file.path}',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+    } catch (e) {
+      Get.snackbar(
+        'Export Failed',
+        e.toString(),
+        snackPosition: SnackPosition.BOTTOM,
+      );
+    }
   }
 
   void showMetricDetails(String metric) {
@@ -164,31 +271,40 @@ class AnalyticsController extends GetxController {
             'Total: ${totalViolations.value} • Active: ${activeViolations.value}';
         break;
       case 'response':
-        message = 'Avg response time: ${avgResponseTime.value.toStringAsFixed(1)}s';
+        message =
+            'Avg response time: ${avgResponseTime.value.toStringAsFixed(1)}s';
         break;
       default:
         message = 'Monitoring ${zonePerformance.length} camera zones';
     }
-    Get.dialog(AlertDialog(
-      title: Text('Metric Details'),
-      content: Text(message),
-      actions: [TextButton(onPressed: Get.back, child: const Text('OK'))],
-    ));
+    Get.dialog(
+      AlertDialog(
+        title: Text('Metric Details'),
+        content: Text(message),
+        actions: [TextButton(onPressed: Get.back, child: const Text('OK'))],
+      ),
+    );
   }
 
   void showViolationTypeDetails(ViolationTypeData data) {
-    Get.dialog(AlertDialog(
-      title: Text('${data.name} Violations'),
-      content: Text('Count: ${data.value}'),
-      actions: [TextButton(onPressed: Get.back, child: const Text('OK'))],
-    ));
+    Get.dialog(
+      AlertDialog(
+        title: Text('${data.name} Violations'),
+        content: Text('Count: ${data.value}'),
+        actions: [TextButton(onPressed: Get.back, child: const Text('OK'))],
+      ),
+    );
   }
 
   void showZoneDetails(ZonePerformance zone) {
-    Get.dialog(AlertDialog(
-      title: Text(zone.zone),
-      content: Text('Compliance: ${zone.compliance}%\nViolations: ${zone.violations}'),
-      actions: [TextButton(onPressed: Get.back, child: const Text('OK'))],
-    ));
+    Get.dialog(
+      AlertDialog(
+        title: Text(zone.zone),
+        content: Text(
+          'Compliance: ${zone.compliance}%\nViolations: ${zone.violations}',
+        ),
+        actions: [TextButton(onPressed: Get.back, child: const Text('OK'))],
+      ),
+    );
   }
 }

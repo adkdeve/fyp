@@ -1,9 +1,12 @@
 import asyncio
 import logging
+import os
+from datetime import datetime
 
 from fastapi import APIRouter, Depends
 from fastapi.responses import Response, StreamingResponse
 
+from ..core.config import settings
 from ..models.user import User
 from .deps import get_current_user
 from ..workers import frame_store
@@ -31,6 +34,24 @@ def get_frame(
         jpeg = _make_placeholder("No Signal")
     return Response(content=jpeg, media_type="image/jpeg",
                     headers={"Cache-Control": "no-cache, no-store"})
+
+
+@router.post("/{camera_id}/snapshot")
+def save_snapshot(
+    camera_id: int,
+    _: User = Depends(get_current_user),
+):
+    jpeg = frame_store.get_frame(camera_id)
+    if jpeg is None:
+        jpeg = _make_placeholder("No Signal")
+
+    snap_dir = os.path.join(settings.media_dir, "snapshots", "manual", str(camera_id))
+    os.makedirs(snap_dir, exist_ok=True)
+    filename = datetime.utcnow().strftime("%Y%m%d_%H%M%S_%f") + ".jpg"
+    fpath = os.path.join(snap_dir, filename)
+    with open(fpath, "wb") as out:
+        out.write(jpeg)
+    return {"snapshot_url": f"/media/snapshots/manual/{camera_id}/{filename}"}
 
 
 # ── True MJPEG stream (browser / VLC friendly) ────────────────────────────────

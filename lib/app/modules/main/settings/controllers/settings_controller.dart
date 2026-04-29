@@ -8,35 +8,85 @@ import 'package:construction_safety/app/modules/main/termsprivacy/bindings/terms
 import 'package:construction_safety/app/modules/main/termsprivacy/views/termsprivacy_view.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+
 import '../../../../data/models/settings_model.dart';
+import '../../../../data/models/user_model.dart';
 import '../../../../data/services/auth_service.dart';
+import '../../../../data/services/safety_api_service.dart';
 import '../../../../routes/app_pages.dart';
 
 class SettingsController extends GetxController {
   final AuthService _auth = Get.find<AuthService>();
+  final SafetyApiService _api = SafetyApiService.to;
 
   final notificationSettings = NotificationSettings(
     criticalAlerts: true,
     mediumAlerts: true,
-    dailySummary: false,
   ).obs;
+  final Rxn<UserModel> currentUser = Rxn<UserModel>();
+  final cameraCount = 0.obs;
 
-  final autoDetection = true.obs;
+  @override
+  void onInit() {
+    super.onInit();
+    loadSettingsData();
+  }
 
-  void toggleNotification(String key) {
+  Future<void> loadSettingsData() async {
+    await Future.wait([
+      loadProfile(),
+      loadNotificationSettings(),
+      loadCameraCount(),
+    ]);
+  }
+
+  Future<void> loadProfile() async {
+    try {
+      final user = await _api.getMe();
+      currentUser.value = UserModel.fromJson(user);
+      await _auth.saveUserData(user);
+    } catch (_) {
+      currentUser.value = await _auth.getUserData();
+    }
+  }
+
+  Future<void> loadNotificationSettings() async {
+    try {
+      final raw = await _api.getNotificationSettings();
+      notificationSettings.value = NotificationSettings.fromJson(raw);
+    } catch (_) {}
+  }
+
+  Future<void> loadCameraCount() async {
+    try {
+      final cameras = await _api.getCameras(enabled: true);
+      cameraCount.value = cameras.length;
+    } catch (_) {}
+  }
+
+  Future<void> toggleNotification(String key) async {
     final current = notificationSettings.value;
-    notificationSettings.value = current.copyWith(
+    final next = current.copyWith(
       criticalAlerts: key == 'criticalAlerts'
           ? !current.criticalAlerts
           : current.criticalAlerts,
-      mediumAlerts:
-          key == 'mediumAlerts' ? !current.mediumAlerts : current.mediumAlerts,
-      dailySummary:
-          key == 'dailySummary' ? !current.dailySummary : current.dailySummary,
+      mediumAlerts: key == 'mediumAlerts'
+          ? !current.mediumAlerts
+          : current.mediumAlerts,
     );
+    notificationSettings.value = next;
+    try {
+      final updated = await _api.updateNotificationSettings(next.toJson());
+      notificationSettings.value = NotificationSettings.fromJson(updated);
+    } catch (e) {
+      notificationSettings.value = current;
+      Get.snackbar(
+        'Settings Error',
+        e.toString(),
+        snackPosition: SnackPosition.BOTTOM,
+      );
+    }
   }
-
-  void toggleAutoDetection() => autoDetection.value = !autoDetection.value;
 
   void handleLogout() {
     Get.dialog(
@@ -58,8 +108,7 @@ class SettingsController extends GetxController {
     );
   }
 
-  void navigateToProfile() =>
-      Get.to(ProfileView(), binding: ProfileBinding());
+  void navigateToProfile() => Get.to(ProfileView(), binding: ProfileBinding());
 
   void navigateToCameraManagement() =>
       Get.to(CameraManagementView(), binding: CameraManagementBinding());

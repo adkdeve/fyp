@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import '../../../../data/models/camera_model.dart';
 import '../controllers/camera_management_controller.dart';
@@ -8,18 +9,23 @@ class CameraManagementView extends GetView<CameraManagementController> {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: Scaffold(
-        backgroundColor: Colors.grey[50],
-        body: Column(
-          children: [
-            // Header
-            _buildHeader(),
-            // Content
-            Expanded(
-              child: _buildCameraList(),
-            ),
-          ],
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.dark.copyWith(
+        statusBarIconBrightness: Brightness.dark,
+        statusBarBrightness: Brightness.light,
+        statusBarColor: Colors.white,
+      ),
+      child: SafeArea(
+        child: Scaffold(
+          backgroundColor: Colors.grey[50],
+          body: Column(
+            children: [
+              // Header
+              _buildHeader(),
+              // Content
+              Expanded(child: _buildCameraList()),
+            ],
+          ),
         ),
       ),
     );
@@ -51,13 +57,15 @@ class CameraManagementView extends GetView<CameraManagementController> {
                         color: Colors.black87,
                       ),
                     ),
-                    Obx(() => Text(
-                      '${controller.cameras.length} cameras configured',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey,
+                    Obx(
+                      () => Text(
+                        '${controller.cameras.length} cameras configured',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey,
+                        ),
                       ),
-                    )),
+                    ),
                   ],
                 ),
               ),
@@ -72,10 +80,56 @@ class CameraManagementView extends GetView<CameraManagementController> {
             ],
           ),
           const SizedBox(height: 16),
+          _buildSearchAndFilters(),
+          const SizedBox(height: 16),
           // Stats
           _buildStats(),
         ],
       ),
+    );
+  }
+
+  Widget _buildSearchAndFilters() {
+    return Column(
+      children: [
+        TextField(
+          onChanged: controller.setSearchTerm,
+          decoration: InputDecoration(
+            hintText: 'Search cameras...',
+            prefixIcon: const Icon(Icons.search, size: 20),
+            filled: true,
+            fillColor: Colors.white,
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        ),
+        const SizedBox(height: 8),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Obx(
+            () => Row(
+              children: [
+                _statusChip('All', 'all'),
+                const SizedBox(width: 8),
+                _statusChip('Online', 'online'),
+                const SizedBox(width: 8),
+                _statusChip('Offline', 'offline'),
+                const SizedBox(width: 8),
+                _statusChip('Error', 'error'),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _statusChip(String label, String value) {
+    final selected = controller.statusFilter.value == value;
+    return FilterChip(
+      label: Text(label),
+      selected: selected,
+      showCheckmark: false,
+      onSelected: (_) => controller.setStatusFilter(value),
     );
   }
 
@@ -117,7 +171,13 @@ class CameraManagementView extends GetView<CameraManagementController> {
     });
   }
 
-  Widget _buildStatCard(String title, String value, Color bgColor, Color borderColor, Color textColor) {
+  Widget _buildStatCard(
+    String title,
+    String value,
+    Color bgColor,
+    Color borderColor,
+    Color textColor,
+  ) {
     return Container(
       decoration: BoxDecoration(
         color: bgColor,
@@ -127,13 +187,7 @@ class CameraManagementView extends GetView<CameraManagementController> {
       padding: const EdgeInsets.all(8),
       child: Column(
         children: [
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: 12,
-              color: textColor,
-            ),
-          ),
+          Text(title, style: TextStyle(fontSize: 12, color: textColor)),
           const SizedBox(height: 4),
           Text(
             value,
@@ -152,9 +206,9 @@ class CameraManagementView extends GetView<CameraManagementController> {
     return Obx(() {
       return ListView.builder(
         padding: const EdgeInsets.all(16),
-        itemCount: controller.cameras.length,
+        itemCount: controller.filteredCameras.length,
         itemBuilder: (context, index) {
-          return _buildCameraCard(controller.cameras[index]);
+          return _buildCameraCard(controller.filteredCameras[index]);
         },
       );
     });
@@ -162,7 +216,8 @@ class CameraManagementView extends GetView<CameraManagementController> {
 
   Widget _buildCameraCard(CameraModel camera) {
     return Obx(() {
-      final isOnline = camera.status.toLowerCase() == "online";
+      final isOnline =
+          camera.enabled && camera.status.toLowerCase() == "online";
       final isRecording = controller.isRecording(camera.id);
 
       return Container(
@@ -224,7 +279,9 @@ class CameraManagementView extends GetView<CameraManagementController> {
                                   isOnline ? 'online' : 'offline',
                                   style: TextStyle(
                                     fontSize: 12,
-                                    color: isOnline ? Colors.green[600] : Colors.red[600],
+                                    color: isOnline
+                                        ? Colors.green[600]
+                                        : Colors.red[600],
                                   ),
                                 ),
                               ],
@@ -287,17 +344,11 @@ class CameraManagementView extends GetView<CameraManagementController> {
                   colors: [Colors.grey, Colors.black87],
                 ),
               ),
-              child: CustomPaint(
-                painter: _GridPainter(),
-              ),
+              child: CustomPaint(painter: _GridPainter()),
             ),
             // Center icon
             const Center(
-              child: Icon(
-                Icons.videocam,
-                size: 32,
-                color: Colors.white54,
-              ),
+              child: Icon(Icons.videocam, size: 32, color: Colors.white54),
             ),
             // Recording indicator
             if (isRecording) ...[
@@ -305,7 +356,10 @@ class CameraManagementView extends GetView<CameraManagementController> {
                 top: 8,
                 left: 8,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.red,
                     borderRadius: BorderRadius.circular(12),
@@ -340,20 +394,26 @@ class CameraManagementView extends GetView<CameraManagementController> {
     );
   }
 
-  Widget _buildCameraControls(CameraModel camera, bool isOnline, bool isRecording) {
+  Widget _buildCameraControls(
+    CameraModel camera,
+    bool isOnline,
+    bool isRecording,
+  ) {
     return Row(
       children: [
         // Recording button
         Expanded(
           child: ElevatedButton.icon(
-            onPressed: isOnline ? () => controller.toggleRecording(camera.id) : null,
+            onPressed: isOnline
+                ? () => controller.toggleRecording(camera.id)
+                : null,
             icon: Icon(
               Icons.circle,
               size: 16,
               color: isRecording ? Colors.red : Colors.grey,
             ),
             label: Text(
-              isRecording ? 'Stop Recording' : 'Start Recording',
+              isRecording ? 'Recording' : 'Open Feed',
               style: TextStyle(
                 color: isRecording ? Colors.red[700] : Colors.grey[700],
               ),
@@ -377,7 +437,7 @@ class CameraManagementView extends GetView<CameraManagementController> {
           child: ElevatedButton(
             onPressed: () => controller.toggleStatus(camera.id),
             child: Text(
-              isOnline ? 'Disable' : 'Enable',
+              camera.enabled ? 'Disable' : 'Enable',
               style: TextStyle(
                 color: isOnline ? Colors.green[700] : Colors.red[700],
               ),

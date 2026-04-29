@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../data/models/violation_model.dart';
@@ -30,8 +32,11 @@ class ViolationDetailController extends GetxController {
         await _api.resolveViolation(id, 'resolved');
       }
       selectedViolation.value = v.copyWith(status: ViolationStatus.resolved);
-      Get.snackbar('Resolved', 'Violation marked as resolved',
-          snackPosition: SnackPosition.BOTTOM);
+      Get.snackbar(
+        'Resolved',
+        'Violation marked as resolved',
+        snackPosition: SnackPosition.BOTTOM,
+      );
     } catch (e) {
       Get.snackbar('Error', e.toString(), snackPosition: SnackPosition.BOTTOM);
     } finally {
@@ -49,8 +54,11 @@ class ViolationDetailController extends GetxController {
         await _api.resolveViolation(id, 'false_positive');
       }
       selectedViolation.value = v.copyWith(status: ViolationStatus.dismissed);
-      Get.snackbar('Updated', 'Marked as false positive',
-          snackPosition: SnackPosition.BOTTOM);
+      Get.snackbar(
+        'Updated',
+        'Marked as false positive',
+        snackPosition: SnackPosition.BOTTOM,
+      );
     } catch (e) {
       Get.snackbar('Error', e.toString(), snackPosition: SnackPosition.BOTTOM);
     } finally {
@@ -58,14 +66,41 @@ class ViolationDetailController extends GetxController {
     }
   }
 
-  void handleDownload() {
-    Get.snackbar('Downloading', 'Violation report being downloaded...',
-        snackPosition: SnackPosition.BOTTOM);
+  Future<void> handleDownload() async {
+    final v = selectedViolation.value;
+    if (v == null) return;
+    final file = File(
+      '${Directory.systemTemp.path}${Platform.pathSeparator}violation_${v.id}_${DateTime.now().millisecondsSinceEpoch}.txt',
+    );
+    await file.writeAsString('''
+Violation Report
+ID: ${v.id}
+Type: ${v.rawType ?? v.type.name}
+Severity: ${v.severity.name}
+Status: ${v.status.name}
+Location: ${v.zone}
+Detected: ${v.time.toIso8601String()}
+Description: ${v.description}
+Confidence: ${v.confidence ?? 0}
+Snapshot: ${v.imageUrl ?? ''}
+''');
+    Get.snackbar(
+      'Report Saved',
+      file.path,
+      snackPosition: SnackPosition.BOTTOM,
+    );
   }
 
   void handleShare() {
-    Get.snackbar('Sharing', 'Violation details being shared...',
-        snackPosition: SnackPosition.BOTTOM);
+    final v = selectedViolation.value;
+    if (v == null) return;
+    Get.dialog(
+      AlertDialog(
+        title: const Text('Share Violation'),
+        content: Text('Violation #${v.id}\n${v.description}\n${v.zone}'),
+        actions: [TextButton(onPressed: Get.back, child: const Text('OK'))],
+      ),
+    );
   }
 
   Map<String, dynamic> getSeverityConfig(ViolationSeverity severity) {

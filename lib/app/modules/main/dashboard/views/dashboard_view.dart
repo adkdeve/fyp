@@ -4,22 +4,23 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import '../../../../data/models/violation_model.dart';
 import '../controllers/dashboard_controller.dart';
 import '../widgets/live_feed_card.dart';
 
 class DashboardView extends GetView<DashboardController> {
-
   @override
   Widget build(BuildContext context) {
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.light.copyWith(
-          statusBarIconBrightness: Brightness.light,
-          statusBarColor: Colors.blue.shade600
+        statusBarIconBrightness: Brightness.light,
+        statusBarBrightness: Brightness.dark,
+        statusBarColor: Colors.blue.shade600,
       ),
       child: SafeArea(
         child: Scaffold(
           body: Obx(
-                () => SingleChildScrollView(
+            () => SingleChildScrollView(
               child: Column(
                 children: [
                   // HEADER + BLUE BACKGROUND
@@ -30,7 +31,10 @@ class DashboardView extends GetView<DashboardController> {
                         height: 240,
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
-                            colors: [Colors.blue.shade600, Colors.blue.shade700],
+                            colors: [
+                              Colors.blue.shade600,
+                              Colors.blue.shade700,
+                            ],
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                           ),
@@ -40,7 +44,9 @@ class DashboardView extends GetView<DashboardController> {
                           ),
                         ),
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 16),
+                          horizontal: 16,
+                          vertical: 16,
+                        ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -54,16 +60,18 @@ class DashboardView extends GetView<DashboardController> {
                                     const Text(
                                       "Construction Safety Monitor",
                                       style: TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 20,
-                                          fontWeight: FontWeight.w600),
+                                        color: Colors.white,
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.w600,
+                                      ),
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
                                       "${controller.currentTime.value.toLocal().toString().split(' ')[0]} • ${TimeOfDay.fromDateTime(controller.currentTime.value).format(context)}",
                                       style: TextStyle(
-                                          color: Colors.blue.shade100,
-                                          fontSize: 14),
+                                        color: Colors.blue.shade100,
+                                        fontSize: 14,
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -73,8 +81,10 @@ class DashboardView extends GetView<DashboardController> {
                                     color: Colors.white.withOpacity(0.2),
                                     shape: BoxShape.circle,
                                   ),
-                                  child: const Icon(Icons.engineering,
-                                      color: Colors.white),
+                                  child: const Icon(
+                                    Icons.engineering,
+                                    color: Colors.white,
+                                  ),
                                 ),
                               ],
                             ),
@@ -136,13 +146,17 @@ class DashboardView extends GetView<DashboardController> {
                   if (controller.mostRecentViolation != null)
                     Container(
                       margin: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 8),
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
                         color: Colors.red.shade50,
                         border: Border(
-                          left:
-                          BorderSide(color: Colors.red.shade500, width: 4),
+                          left: BorderSide(
+                            color: Colors.red.shade500,
+                            width: 4,
+                          ),
                         ),
                         borderRadius: BorderRadius.circular(16),
                       ),
@@ -170,7 +184,9 @@ class DashboardView extends GetView<DashboardController> {
                                   ),
                                 ),
                                 Text(
-                                  DateFormat('hh:mm a').format(controller.mostRecentViolation!.time),
+                                  DateFormat('hh:mm a').format(
+                                    controller.mostRecentViolation!.time,
+                                  ),
                                   style: TextStyle(
                                     color: Colors.red.shade500,
                                     fontSize: 10,
@@ -196,7 +212,9 @@ class DashboardView extends GetView<DashboardController> {
                             const Text(
                               "Live Camera Feeds",
                               style: TextStyle(
-                                  fontSize: 16, fontWeight: FontWeight.w600),
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                           ],
                         ),
@@ -204,20 +222,22 @@ class DashboardView extends GetView<DashboardController> {
                         Column(
                           children: controller.cameras.map((camera) {
                             final activeViolations = controller.violations
-                                .where((v) =>
-                            v.zone
-                                .contains(camera.zone.split(" - ")[0]) &&
-                                v.status == 'active')
+                                .where(
+                                  (v) =>
+                                      v.cameraId == camera.id &&
+                                      v.status == ViolationStatus.active,
+                                )
                                 .toList();
                             final hasViolation = activeViolations.isNotEmpty;
-                            final violation =
-                            hasViolation ? activeViolations[0] : null;
+                            final violation = hasViolation
+                                ? activeViolations[0]
+                                : null;
                             String status = camera.status == "offline"
                                 ? "critical"
                                 : hasViolation
-                                ? (violation!.severity == "high"
-                                ? "critical"
-                                : "warning")
+                                ? (violation!.severity == ViolationSeverity.high
+                                      ? "critical"
+                                      : "warning")
                                 : "safe";
 
                             return LiveFeedCard(
@@ -243,72 +263,86 @@ class DashboardView extends GetView<DashboardController> {
   }
 
   // Quick stats widget inside header
-  Widget _quickStat(
-      {required IconData icon, required String label, required String value}) =>
-      Container(
-        width: (Get.width - 64) / 3,
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.2),
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Column(
+  Widget _quickStat({
+    required IconData icon,
+    required String label,
+    required String value,
+  }) => Container(
+    width: (Get.width - 64) / 3,
+    padding: const EdgeInsets.all(12),
+    decoration: BoxDecoration(
+      color: Colors.white.withOpacity(0.2),
+      borderRadius: BorderRadius.circular(16),
+    ),
+    child: Column(
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(icon, size: 16, color: Colors.white),
-                const SizedBox(width: 4),
-                Text(label,
-                    style: const TextStyle(color: Colors.white, fontSize: 12)),
-              ],
+            Icon(icon, size: 16, color: Colors.white),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: const TextStyle(color: Colors.white, fontSize: 12),
             ),
-            const SizedBox(height: 4),
-            Text(value,
-                style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w600)),
           ],
         ),
-      );
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
+    ),
+  );
 
   // Status cards widget (Compliant / Violations)
-  Widget _statusCard(
-      {required String label,
-        required String value,
-        required IconData icon,
-        required Color color}) =>
-      Container(
-        width: (Get.width - 48) / 2,
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border(left: BorderSide(color: color, width: 4)),
-          boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4)],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _statusCard({
+    required String label,
+    required String value,
+    required IconData icon,
+    required Color color,
+  }) => Container(
+    width: (Get.width - 48) / 2,
+    padding: const EdgeInsets.all(16),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(16),
+      border: Border(left: BorderSide(color: color, width: 4)),
+      boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4)],
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(label,
-                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
-                Icon(icon, color: color),
-              ],
+            Text(
+              label,
+              style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
             ),
-            const SizedBox(height: 8),
-            Text(value,
-                style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.grey.shade900)),
-            const SizedBox(height: 4),
-            const Text("Safety Score",
-                style: TextStyle(fontSize: 10, color: Colors.grey)),
+            Icon(icon, color: color),
           ],
         ),
-      );
+        const SizedBox(height: 8),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+            color: Colors.grey.shade900,
+          ),
+        ),
+        const SizedBox(height: 4),
+        const Text(
+          "Safety Score",
+          style: TextStyle(fontSize: 10, color: Colors.grey),
+        ),
+      ],
+    ),
+  );
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import '../controllers/helpsupport_controller.dart';
 
@@ -7,18 +8,25 @@ class HelpSupportView extends GetView<HelpSupportController> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF9FAFB),
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Header
-            _buildHeader(),
-            // Content - Fixed with Expanded and proper scrolling
-            Expanded(
-              child: _buildContent(),
-            ),
-          ],
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.dark.copyWith(
+        statusBarIconBrightness: Brightness.dark,
+        statusBarBrightness: Brightness.light,
+        statusBarColor: Colors.white,
+      ),
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF9FAFB),
+        body: SafeArea(
+          child: Column(
+            children: [
+              // Header
+              _buildHeader(),
+              // Content - Fixed with Expanded and proper scrolling
+              Expanded(
+                child: _buildContent(),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -45,19 +53,9 @@ class HelpSupportView extends GetView<HelpSupportController> {
                   children: [
                     Text(
                       'Help & Support',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF111827),
-                      ),
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Color(0xFF111827)),
                     ),
-                    Text(
-                      'Get answers and assistance',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Color(0xFF6B7280),
-                      ),
-                    ),
+                    Text('Get answers and assistance', style: TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
                   ],
                 ),
               ),
@@ -133,11 +131,7 @@ class HelpSupportView extends GetView<HelpSupportController> {
             ),
             child: const Text(
               'Contact Support',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF111827),
-              ),
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Color(0xFF111827)),
             ),
           ),
           // Contact Options
@@ -190,27 +184,14 @@ class HelpSupportView extends GetView<HelpSupportController> {
         onTap: onTap,
         leading: Container(
           padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: backgroundColor,
-            borderRadius: BorderRadius.circular(8),
-          ),
+          decoration: BoxDecoration(color: backgroundColor, borderRadius: BorderRadius.circular(8)),
           child: Icon(icon, size: 20, color: color),
         ),
         title: Text(
           title,
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-            color: Color(0xFF111827),
-          ),
+          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Color(0xFF111827)),
         ),
-        subtitle: Text(
-          subtitle,
-          style: const TextStyle(
-            fontSize: 12,
-            color: Color(0xFF6B7280),
-          ),
-        ),
+        subtitle: Text(subtitle, style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
         trailing: const Icon(Icons.chevron_right, size: 20, color: Color(0xFF9CA3AF)),
       ),
     );
@@ -236,11 +217,7 @@ class HelpSupportView extends GetView<HelpSupportController> {
             ),
             child: const Text(
               'Resources',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF111827),
-              ),
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Color(0xFF111827)),
             ),
           ),
           // Resource Options
@@ -293,27 +270,14 @@ class HelpSupportView extends GetView<HelpSupportController> {
         onTap: onTap,
         leading: Container(
           padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: backgroundColor,
-            borderRadius: BorderRadius.circular(8),
-          ),
+          decoration: BoxDecoration(color: backgroundColor, borderRadius: BorderRadius.circular(8)),
           child: Icon(icon, size: 20, color: color),
         ),
         title: Text(
           title,
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-            color: Color(0xFF111827),
-          ),
+          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Color(0xFF111827)),
         ),
-        subtitle: Text(
-          subtitle,
-          style: const TextStyle(
-            fontSize: 12,
-            color: Color(0xFF6B7280),
-          ),
-        ),
+        subtitle: Text(subtitle, style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
         trailing: const Icon(Icons.chevron_right, size: 20, color: Color(0xFF9CA3AF)),
       ),
     );
@@ -343,11 +307,7 @@ class HelpSupportView extends GetView<HelpSupportController> {
                 SizedBox(width: 8),
                 Text(
                   'Frequently Asked Questions',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF111827),
-                  ),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Color(0xFF111827)),
                 ),
               ],
             ),
@@ -365,13 +325,7 @@ class HelpSupportView extends GetView<HelpSupportController> {
     if (filteredFaqs.isEmpty) {
       return const Padding(
         padding: EdgeInsets.all(16),
-        child: Text(
-          'No FAQs found matching your search.',
-          style: TextStyle(
-            color: Color(0xFF6B7280),
-            fontSize: 14,
-          ),
-        ),
+        child: Text('No FAQs found matching your search.', style: TextStyle(color: Color(0xFF6B7280), fontSize: 14)),
       );
     }
 
@@ -388,13 +342,7 @@ class HelpSupportView extends GetView<HelpSupportController> {
             children: [
               ListTile(
                 onTap: () => controller.toggleFaq(index),
-                title: Text(
-                  faq['question']!,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: Color(0xFF111827),
-                  ),
-                ),
+                title: Text(faq['question']!, style: const TextStyle(fontSize: 14, color: Color(0xFF111827))),
                 trailing: Icon(
                   isExpanded ? Icons.expand_less : Icons.expand_more,
                   size: 20,
@@ -404,13 +352,7 @@ class HelpSupportView extends GetView<HelpSupportController> {
               if (isExpanded) ...[
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                  child: Text(
-                    faq['answer']!,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: Color(0xFF6B7280),
-                    ),
-                  ),
+                  child: Text(faq['answer']!, style: const TextStyle(fontSize: 14, color: Color(0xFF6B7280))),
                 ),
               ],
             ],
@@ -423,21 +365,9 @@ class HelpSupportView extends GetView<HelpSupportController> {
   Widget _buildAppVersion() {
     return const Column(
       children: [
-        Text(
-          'Version 1.0.0',
-          style: TextStyle(
-            fontSize: 12,
-            color: Color(0xFF6B7280),
-          ),
-        ),
+        Text('Version 1.0.0', style: TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
         SizedBox(height: 4),
-        Text(
-          'Last updated: Nov 19, 2024',
-          style: TextStyle(
-            fontSize: 12,
-            color: Color(0xFF9CA3AF),
-          ),
-        ),
+        Text('Last updated: Nov 19, 2024', style: TextStyle(fontSize: 12, color: Color(0xFF9CA3AF))),
       ],
     );
   }

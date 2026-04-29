@@ -12,6 +12,7 @@ from ..core.config import settings
 from ..core.db import SessionLocal
 from ..models.camera import Camera, CameraStatus
 from ..models.violation import Violation
+from ..models.violation import Severity
 from ..models.alert import Alert, AlertChannel
 from ..models.user import User, UserRole
 from .detectors.base import BaseDetector
@@ -176,20 +177,31 @@ class CameraWorker:
                 .filter(User.role == UserRole.supervisor, User.is_active == True)
                 .all()
             )
+            recipient_ids: list[int] = []
             for sup in supervisors:
+                if detection.severity == Severity.high and not sup.notify_critical_alerts:
+                    continue
+                if detection.severity == Severity.medium and not sup.notify_medium_alerts:
+                    continue
+                if detection.severity == Severity.low:
+                    continue
                 db.add(Alert(violation_id=v.id, user_id=sup.id,
                              channel=AlertChannel.websocket))
+                recipient_ids.append(sup.id)
             db.commit()
             db.refresh(v)
             return {
-                "type":           "new_violation",
-                "violation_id":   v.id,
-                "camera_id":      self.camera_id,
-                "violation_type": detection.type.value,
-                "severity":       detection.severity.value,
-                "confidence":     detection.confidence,
-                "snapshot_url":   snapshot_url,
-                "detected_at":    v.detected_at.isoformat(),
+                "recipients": recipient_ids,
+                "payload": {
+                    "type":           "new_violation",
+                    "violation_id":   v.id,
+                    "camera_id":      self.camera_id,
+                    "violation_type": detection.type.value,
+                    "severity":       detection.severity.value,
+                    "confidence":     detection.confidence,
+                    "snapshot_url":   snapshot_url,
+                    "detected_at":    v.detected_at.isoformat(),
+                },
             }
         except Exception as e:
             logger.error(f"[Cam {self.camera_id}] DB error: {e}")
@@ -200,8 +212,12 @@ class CameraWorker:
 
     def _broadcast(self, payload: dict):
         from ..ws.manager import connection_manager
-        asyncio.run_coroutine_threadsafe(
-            connection_manager.broadcast(payload), self.loop)
+        message = payload.get("payload", payload)
+        recipients = payload.get("recipients")
+        if recipients:
+            for user_id in recipients:
+                asyncio.run_coroutine_threadsafe(
+                    connection_manager.send_to_user(user_id, message), self.loop)
 
     # ── Main inference loop ───────────────────────────────────────────────────
 

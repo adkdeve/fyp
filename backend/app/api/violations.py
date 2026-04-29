@@ -1,8 +1,13 @@
+import csv
+import io
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import StreamingResponse
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from ..core.db import get_db
+from ..models.camera import Camera
 from ..models.violation import Violation, ViolationType, Severity, ViolationStatus
 from ..models.user import User
 from ..schemas.violation import ViolationOut, ViolationCreate, ViolationResolve
@@ -13,6 +18,7 @@ router = APIRouter(prefix="/violations", tags=["Violations"])
 
 @router.get("", response_model=list[ViolationOut])
 def list_violations(
+    q: str | None = Query(None),
     camera_id: int | None = Query(None),
     type: ViolationType | None = Query(None),
     severity: Severity | None = Query(None),
@@ -24,20 +30,89 @@ def list_violations(
     db: Session = Depends(get_db),
     _: User = Depends(get_current_user),
 ):
-    q = db.query(Violation)
+    query = db.query(Violation).join(Violation.camera)
     if camera_id:
-        q = q.filter(Violation.camera_id == camera_id)
+        query = query.filter(Violation.camera_id == camera_id)
     if type:
-        q = q.filter(Violation.type == type)
+        query = query.filter(Violation.type == type)
     if severity:
-        q = q.filter(Violation.severity == severity)
+        query = query.filter(Violation.severity == severity)
     if status:
-        q = q.filter(Violation.status == status)
+        query = query.filter(Violation.status == status)
     if from_date:
-        q = q.filter(Violation.detected_at >= from_date)
+        query = query.filter(Violation.detected_at >= from_date)
     if to_date:
-        q = q.filter(Violation.detected_at <= to_date)
-    return q.order_by(Violation.detected_at.desc()).offset(offset).limit(limit).all()
+        query = query.filter(Violation.detected_at <= to_date)
+    if q:
+        like = f"%{q.strip()}%"
+        query = query.filter(
+            or_(
+                Violation.notes.ilike(like),
+                Camera.name.ilike(like),
+                Camera.location.ilike(like),
+            )
+        )
+    return query.order_by(Violation.detected_at.desc()).offset(offset).limit(limit).all()
+
+
+@router.get("/export")
+def export_violations(
+    q: str | None = Query(None),
+    camera_id: int | None = Query(None),
+    type: ViolationType | None = Query(None),
+    severity: Severity | None = Query(None),
+    status: ViolationStatus | None = Query(None),
+    from_date: datetime | None = Query(None),
+    to_date: datetime | None = Query(None),
+    db: Session = Depends(get_db),
+    _: User = Depends(get_current_user),
+):
+    rows = list_violations(
+        q=q,
+        camera_id=camera_id,
+        type=type,
+        severity=severity,
+        status=status,
+        from_date=from_date,
+        to_date=to_date,
+        limit=200,
+        offset=0,
+        db=db,
+        _=_,
+    )
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow([
+        "id",
+        "camera",
+        "location",
+        "type",
+        "severity",
+        "status",
+        "confidence",
+        "detected_at",
+        "resolved_at",
+        "notes",
+    ])
+    for v in rows:
+        writer.writerow([
+            v.id,
+            v.camera.name if v.camera else "",
+            v.camera.location if v.camera else "",
+            v.type.value,
+            v.severity.value,
+            v.status.value,
+            v.confidence,
+            v.detected_at.isoformat() if v.detected_at else "",
+            v.resolved_at.isoformat() if v.resolved_at else "",
+            v.notes or "",
+        ])
+    output.seek(0)
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=violations.csv"},
+    )
 
 
 @router.get("/{violation_id}", response_model=ViolationOut)

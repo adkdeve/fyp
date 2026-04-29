@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import '../controllers/login_controller.dart';
@@ -8,17 +9,23 @@ class LoginView extends GetView<LoginController> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF0C192B),
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 32.h),
-            child: Form(
-              key: controller.formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.light.copyWith(
+        statusBarIconBrightness: Brightness.light,
+        statusBarBrightness: Brightness.dark,
+        statusBarColor: const Color(0xFF0C192B),
+      ),
+      child: Scaffold(
+        backgroundColor: const Color(0xFF0C192B),
+        body: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 32.h),
+              child: Form(
+                key: controller.formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
                   // Logo / Title
                   Icon(Icons.construction, size: 64.r, color: const Color(0xFF3B82F6)),
                   SizedBox(height: 16.h),
@@ -121,7 +128,8 @@ class LoginView extends GetView<LoginController> {
           ),
         ),
       ),
-    );
+    ),
+  );
   }
 
   Widget _buildLabel(String text) => Text(

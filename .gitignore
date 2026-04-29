@@ -9,6 +9,9 @@
 .history
 .svn/
 migrate_working_dir/
+.tmp/
+.pip-cache/
+.claude/
 
 # IntelliJ related
 *.iml
@@ -30,6 +33,9 @@ migrate_working_dir/
 .pub-cache/
 .pub/
 /build/
+.venv/
+flutter.log
+flutter.err.log
 
 # Symbolication related
 app.*.symbols
@@ -41,3 +47,18 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Python/backend local artifacts
+backend/.venv/
+backend/__pycache__/
+backend/.pytest_cache/
+backend/.mypy_cache/
+backend/.ruff_cache/
+backend/.coverage
+backend/htmlcov/
+backend/dev.db
+backend/*.db
+backend/uvicorn.log
+backend/uvicorn.err.log
+backend/media/
+backend/model.pt

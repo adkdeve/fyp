@@ -11,35 +11,43 @@ class HelpSupportController extends GetxController {
   final List<Map<String, String>> faqs = [
     {
       'question': 'How does AI detection work?',
-      'answer': 'Our system uses YOLO and Mask R-CNN deep learning models to analyze live video feeds in real-time. The AI identifies safety violations such as missing PPE, unauthorized access, and hazardous zone intrusions with 90%+ accuracy.',
+      'answer':
+          'Our system uses YOLO and Mask R-CNN deep learning models to analyze live video feeds in real-time. The AI identifies safety violations such as missing PPE, unauthorized access, and hazardous zone intrusions with 90%+ accuracy.',
     },
     {
       'question': 'What happens when a violation is detected?',
-      'answer': 'When a violation is detected, the system immediately sends alerts to supervisors via the mobile app. The violation is logged with timestamp, location, and visual evidence for compliance tracking.',
+      'answer':
+          'When a violation is detected, the system immediately sends alerts to supervisors via the mobile app. The violation is logged with timestamp, location, and visual evidence for compliance tracking.',
     },
     {
       'question': 'How fast are alerts delivered?',
-      'answer': 'Alerts are typically delivered within 2-3 seconds of violation detection, ensuring rapid response times for critical safety incidents.',
+      'answer':
+          'Alerts are typically delivered within 2-3 seconds of violation detection, ensuring rapid response times for critical safety incidents.',
     },
     {
       'question': 'Can I customize notification settings?',
-      'answer': 'Yes! You can customize which types of alerts you receive (critical, medium, low) and set up daily summaries in the Settings > Notifications section.',
+      'answer':
+          'Yes. You can customize critical and medium alerts in the Settings > Notifications section.',
     },
     {
       'question': 'How do I add new cameras?',
-      'answer': 'Go to Settings > Camera Management and tap the \'+\' button. Follow the setup wizard to configure your new camera and deploy AI detection models.',
+      'answer':
+          'Go to Settings > Camera Management and tap the \'+\' button. Follow the setup wizard to configure your new camera and deploy AI detection models.',
     },
     {
       'question': 'What PPE violations can be detected?',
-      'answer': 'The system can detect missing hard hats, safety vests, gloves, safety glasses, harnesses, and other required personal protective equipment.',
+      'answer':
+          'The system can detect missing hard hats, safety vests, gloves, safety glasses, harnesses, and other required personal protective equipment.',
     },
     {
       'question': 'How is data stored and secured?',
-      'answer': 'All violation data is encrypted and stored in a secure cloud database with local backup. Only authorized personnel can access the records.',
+      'answer':
+          'All violation data is encrypted and stored in a secure cloud database with local backup. Only authorized personnel can access the records.',
     },
     {
       'question': 'Can I export violation reports?',
-      'answer': 'Yes! You can export violation history to CSV format from the History screen for compliance audits and safety reviews.',
+      'answer':
+          'Yes! You can export violation history to CSV format from the History screen for compliance audits and safety reviews.',
     },
   ];
 
@@ -74,51 +82,23 @@ class HelpSupportController extends GetxController {
   void handleContactSupport(String method) {
     switch (method) {
       case 'email':
-        Get.dialog(
-          AlertDialog(
-            title: const Text('Opening email client...'),
-            content: const Text('Email: support@constructionsafety.com'),
-            actions: [
-              TextButton(
-                onPressed: () => Get.back(),
-                child: const Text('OK'),
-              ),
-            ],
-          ),
+        _openDetail(
+          'Email Support',
+          'Email: support@constructionsafety.com\nResponse within 24 hours.',
         );
         break;
 
       case 'phone':
-        Get.dialog(
-          AlertDialog(
-            title: const Text('Call Support'),
-            content: const Text(
-              'Phone: 1-800-SAFETY-1\n(1-800-723-3891)\n\nAvailable 24/7',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Get.back(),
-                child: const Text('OK'),
-              ),
-            ],
-          ),
+        _openDetail(
+          'Phone Support',
+          'Phone: 1-800-SAFETY-1\n(1-800-723-3891)\nAvailable 24/7.',
         );
         break;
 
       case 'chat':
-        Get.dialog(
-          AlertDialog(
-            title: const Text('Live Chat'),
-            content: const Text(
-              'Connecting you to a support agent...\n\nEstimated wait time: 2 minutes',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Get.back(),
-                child: const Text('OK'),
-              ),
-            ],
-          ),
+        _openDetail(
+          'Live Chat',
+          'Live chat requests are logged inside the app.\nA support agent will respond from the operations desk.',
         );
         break;
     }
@@ -128,49 +108,37 @@ class HelpSupportController extends GetxController {
   void handleResource(String resource) {
     switch (resource) {
       case 'guide':
-        Get.dialog(
-          AlertDialog(
-            title: const Text('User Guide'),
-            content: const Text('Opening user guide...'),
-            actions: [
-              TextButton(
-                onPressed: () => Get.back(),
-                child: const Text('OK'),
-              ),
-            ],
-          ),
+        _openDetail(
+          'User Guide',
+          '1. Add cameras from Settings > Camera Management.\n2. Open Dashboard to monitor live feeds.\n3. Review alerts and acknowledge or resolve violations.\n4. Use History and Analytics for reports.',
         );
         break;
 
       case 'tutorials':
-        Get.dialog(
-          AlertDialog(
-            title: const Text('Video Tutorials'),
-            content: const Text('Opening video tutorials...'),
-            actions: [
-              TextButton(
-                onPressed: () => Get.back(),
-                child: const Text('OK'),
-              ),
-            ],
-          ),
+        _openDetail(
+          'Video Tutorials',
+          'Tutorial 1: Connect a camera.\nTutorial 2: Review a safety alert.\nTutorial 3: Export safety reports.',
         );
         break;
 
       case 'guidelines':
-        Get.dialog(
-          AlertDialog(
-            title: const Text('Safety Guidelines'),
-            content: const Text('Downloading safety guidelines...'),
-            actions: [
-              TextButton(
-                onPressed: () => Get.back(),
-                child: const Text('OK'),
-              ),
-            ],
-          ),
+        _openDetail(
+          'Safety Guidelines',
+          'Workers must wear required PPE, avoid restricted zones, keep paths clear, and report hazards immediately.',
         );
         break;
     }
+  }
+
+  void _openDetail(String title, String body) {
+    Get.to(
+      () => Scaffold(
+        appBar: AppBar(title: Text(title)),
+        body: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Text(body, style: const TextStyle(fontSize: 15, height: 1.5)),
+        ),
+      ),
+    );
   }
 }

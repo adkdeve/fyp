@@ -7,15 +7,18 @@ import '../controllers/alerts_controller.dart';
 import '../../../../data/models/violation_model.dart';
 
 class AlertsView extends StatelessWidget {
-  final AlertsController controller = Get.put(AlertsController());
+  final AlertsController controller = Get.find<AlertsController>();
 
   @override
   Widget build(BuildContext context) {
+    final overlayStyle = SystemUiOverlayStyle.dark.copyWith(
+      statusBarIconBrightness: Brightness.dark,
+      statusBarBrightness: Brightness.light,
+      statusBarColor: Colors.white,
+    );
+
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.light.copyWith(
-          statusBarIconBrightness: Brightness.dark,
-          statusBarColor: Colors.grey.shade50
-      ),
+      value: overlayStyle,
       child: Scaffold(
         backgroundColor: Colors.grey.shade50,
         appBar: AppBar(
@@ -23,6 +26,7 @@ class AlertsView extends StatelessWidget {
           backgroundColor: Colors.white,
           elevation: 0,
           foregroundColor: Colors.black,
+          systemOverlayStyle: overlayStyle,
         ),
         body: Obx(() {
           final activeAlerts = controller.activeAlerts;
@@ -31,6 +35,8 @@ class AlertsView extends StatelessWidget {
             padding: const EdgeInsets.all(14),
             child: Column(
               children: [
+                _searchAndFilters(),
+                const SizedBox(height: 14),
                 _summaryCards(activeAlerts),
                 const SizedBox(height: 14),
                 if (activeAlerts.isEmpty) _noAlertWidget(),
@@ -44,6 +50,51 @@ class AlertsView extends StatelessWidget {
     );
   }
 
+  Widget _searchAndFilters() {
+    return Column(
+      children: [
+        TextField(
+          onChanged: controller.setSearchTerm,
+          decoration: InputDecoration(
+            hintText: 'Search alerts...',
+            prefixIcon: const Icon(Icons.search, size: 20),
+            filled: true,
+            fillColor: Colors.white,
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        ),
+        const SizedBox(height: 10),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Obx(() {
+            return Row(
+              children: [
+                _filterChip('All', null),
+                const SizedBox(width: 8),
+                _filterChip('High', ViolationSeverity.high),
+                const SizedBox(width: 8),
+                _filterChip('Medium', ViolationSeverity.medium),
+                const SizedBox(width: 8),
+                _filterChip('Low', ViolationSeverity.low),
+              ],
+            );
+          }),
+        ),
+      ],
+    );
+  }
+
+  Widget _filterChip(String label, ViolationSeverity? severity) {
+    final selected = controller.severityFilter.value == severity;
+    return FilterChip(
+      label: Text(label),
+      selected: selected,
+      showCheckmark: false,
+      onSelected: (_) =>
+          controller.setSeverityFilter(selected ? null : severity),
+    );
+  }
+
   // 🔴🟡🔵 Summary Cards based on enum
   Widget _summaryCards(List<ViolationModel> activeAlerts) {
     return Row(
@@ -51,12 +102,16 @@ class AlertsView extends StatelessWidget {
         _severityCard(
           "High",
           Colors.red,
-          activeAlerts.where((a) => a.severity == ViolationSeverity.high).length,
+          activeAlerts
+              .where((a) => a.severity == ViolationSeverity.high)
+              .length,
         ),
         _severityCard(
           "Medium",
           Colors.orange,
-          activeAlerts.where((a) => a.severity == ViolationSeverity.medium).length,
+          activeAlerts
+              .where((a) => a.severity == ViolationSeverity.medium)
+              .length,
         ),
         _severityCard(
           "Low",
@@ -119,7 +174,11 @@ class AlertsView extends StatelessWidget {
             const SizedBox(height: 12),
             ClipRRect(
               borderRadius: BorderRadius.circular(12),
-              child: Image.network(alert.imageUrl!, height: 160, fit: BoxFit.cover),
+              child: Image.network(
+                alert.imageUrl!,
+                height: 160,
+                fit: BoxFit.cover,
+              ),
             ),
           ],
 
@@ -162,17 +221,14 @@ class AlertsView extends StatelessWidget {
   // 🏷 Badge Row (Type + Severity)
   Widget _badgeRow(ViolationModel alert, Map<String, dynamic> config) {
     return Row(
-        children: [
-          _badge(
-            icon: _getTypeIcon(alert.type),
-            text: alert.type.name,
-            color: config["text"],
-          ),
-          _badge(
-            text: alert.severity.name.toUpperCase(),
-            color: config["text"],
-          ),
-        ],
+      children: [
+        _badge(
+          icon: _getTypeIcon(alert.type),
+          text: alert.type.name,
+          color: config["text"],
+        ),
+        _badge(text: alert.severity.name.toUpperCase(), color: config["text"]),
+      ],
     );
   }
 
@@ -203,8 +259,10 @@ class AlertsView extends StatelessWidget {
         const SizedBox(width: 10),
         const Icon(LucideIcons.clock, size: 14, color: Colors.grey),
         const SizedBox(width: 4),
-        Text(DateFormat('hh:mm a').format(alert.time),
-            style: const TextStyle(fontSize: 12)),
+        Text(
+          DateFormat('hh:mm a').format(alert.time),
+          style: const TextStyle(fontSize: 12),
+        ),
       ],
     );
   }
@@ -227,7 +285,7 @@ class AlertsView extends StatelessWidget {
           "icon": LucideIcons.triangleAlert,
         };
       case ViolationSeverity.low:
-      return {
+        return {
           "bg": Colors.blue.shade50,
           "border": Colors.blue.shade200,
           "text": Colors.blue.shade700,
@@ -245,7 +303,7 @@ class AlertsView extends StatelessWidget {
       case ViolationType.Hazardous:
         return LucideIcons.triangleAlert;
       case ViolationType.Material:
-      return LucideIcons.box;
+        return LucideIcons.box;
     }
   }
 
@@ -256,10 +314,14 @@ class AlertsView extends StatelessWidget {
         children: const [
           Icon(Icons.check_circle, color: Colors.green, size: 70),
           SizedBox(height: 12),
-          Text("No Active Alerts",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          Text("All safety protocols are being followed",
-              style: TextStyle(fontSize: 13, color: Colors.grey)),
+          Text(
+            "No Active Alerts",
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          Text(
+            "All safety protocols are being followed",
+            style: TextStyle(fontSize: 13, color: Colors.grey),
+          ),
         ],
       ),
     );
@@ -278,9 +340,14 @@ class AlertsView extends StatelessWidget {
         child: Column(
           children: [
             Text(label, style: TextStyle(color: color, fontSize: 12)),
-            Text("$count",
-                style: TextStyle(
-                    color: color, fontSize: 22, fontWeight: FontWeight.bold)),
+            Text(
+              "$count",
+              style: TextStyle(
+                color: color,
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ],
         ),
       ),

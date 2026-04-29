@@ -11,9 +11,10 @@ class HistoryView extends GetView<HistoryController> {
   @override
   Widget build(BuildContext context) {
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.light.copyWith(
-          statusBarIconBrightness: Brightness.dark,
-          statusBarColor: Colors.grey.shade50
+      value: SystemUiOverlayStyle.dark.copyWith(
+        statusBarIconBrightness: Brightness.dark,
+        statusBarBrightness: Brightness.light,
+        statusBarColor: Colors.white,
       ),
       child: SafeArea(
         child: Scaffold(
@@ -23,9 +24,7 @@ class HistoryView extends GetView<HistoryController> {
               // Header Section
               _buildHeader(),
               // Content Section
-              Expanded(
-                child: _buildContent(),
-              ),
+              Expanded(child: _buildContent()),
             ],
           ),
         ),
@@ -48,17 +47,12 @@ class HistoryView extends GetView<HistoryController> {
                 children: [
                   Text(
                     'Violation History',
-                    style: Get.textTheme.titleLarge?.copyWith(
-                      color: Colors.grey[900],
-                      fontWeight: FontWeight.w600,
-                    ),
+                    style: Get.textTheme.titleLarge?.copyWith(color: Colors.grey[900], fontWeight: FontWeight.w600),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     'Complete safety incident log',
-                    style: Get.textTheme.bodyMedium?.copyWith(
-                      color: Colors.grey[600],
-                    ),
+                    style: Get.textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
                   ),
                 ],
               ),
@@ -132,13 +126,8 @@ class HistoryView extends GetView<HistoryController> {
         onSelected: (_) => controller.setFilterType(isSelected ? null : type),
         backgroundColor: Colors.grey[100],
         selectedColor: Colors.blue[100],
-        labelStyle: TextStyle(
-          color: isSelected ? Colors.blue[700] : Colors.grey[600],
-          fontSize: 12,
-        ),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
+        labelStyle: TextStyle(color: isSelected ? Colors.blue[700] : Colors.grey[600], fontSize: 12),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         side: BorderSide.none,
       );
     });
@@ -178,17 +167,10 @@ class HistoryView extends GetView<HistoryController> {
               children: [
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[100],
-                    borderRadius: BorderRadius.circular(12),
-                  ),
+                  decoration: BoxDecoration(color: Colors.grey[100], borderRadius: BorderRadius.circular(12)),
                   child: Text(
                     violation.type.name,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey,
-                      fontWeight: FontWeight.w500,
-                    ),
+                    style: const TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w500),
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -200,11 +182,7 @@ class HistoryView extends GetView<HistoryController> {
                   ),
                   child: Text(
                     violation.severity.name.toUpperCase(),
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: severityStyle.textColor,
-                      fontWeight: FontWeight.w500,
-                    ),
+                    style: TextStyle(fontSize: 12, color: severityStyle.textColor, fontWeight: FontWeight.w500),
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -216,11 +194,7 @@ class HistoryView extends GetView<HistoryController> {
                   ),
                   child: Text(
                     statusStyle.label,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: statusStyle.textColor,
-                      fontWeight: FontWeight.w500,
-                    ),
+                    style: TextStyle(fontSize: 12, color: statusStyle.textColor, fontWeight: FontWeight.w500),
                   ),
                 ),
               ],
@@ -229,11 +203,7 @@ class HistoryView extends GetView<HistoryController> {
             // Description
             Text(
               violation.description,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: Colors.black87,
-              ),
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.black87),
             ),
             const SizedBox(height: 12),
             // Details Row
@@ -242,11 +212,7 @@ class HistoryView extends GetView<HistoryController> {
               const SizedBox(height: 8),
               Text(
                 'Acknowledged by: ${violation.acknowledgedBy}',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.green[600],
-                  fontWeight: FontWeight.w500,
-                ),
+                style: TextStyle(fontSize: 12, color: Colors.green[600], fontWeight: FontWeight.w500),
               ),
             ],
             const SizedBox(height: 12),
@@ -266,15 +232,9 @@ class HistoryView extends GetView<HistoryController> {
           child: _buildDetailItem(Icons.location_on, violation.zone),
         ),
         const SizedBox(width: 8), // Reduced spacing
-        Expanded(
-          flex: 1,
-          child: _buildDetailItem(Icons.calendar_today, controller.formatDate(violation.time)),
-        ),
+        Expanded(flex: 1, child: _buildDetailItem(Icons.calendar_today, controller.formatDate(violation.time))),
         const SizedBox(width: 8), // Reduced spacing
-        Expanded(
-          flex: 1,
-          child: _buildDetailItem(Icons.access_time, controller.formatTime(violation.time)),
-        ),
+        Expanded(flex: 1, child: _buildDetailItem(Icons.access_time, controller.formatTime(violation.time))),
       ],
     );
   }
@@ -285,7 +245,8 @@ class HistoryView extends GetView<HistoryController> {
       children: [
         Icon(icon, size: 16, color: Colors.grey[600]),
         const SizedBox(width: 4),
-        Flexible( // Allow text to wrap if needed
+        Flexible(
+          // Allow text to wrap if needed
           child: MyText(
             text: text,
             fontSize: 12,
@@ -309,9 +270,7 @@ class HistoryView extends GetView<HistoryController> {
           foregroundColor: Colors.grey[700],
           backgroundColor: Colors.grey[50],
           padding: const EdgeInsets.symmetric(vertical: 12),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           side: BorderSide(color: Colors.grey[200]!),
         ),
       ),
@@ -326,28 +285,16 @@ class HistoryView extends GetView<HistoryController> {
           Container(
             width: 64,
             height: 64,
-            decoration: BoxDecoration(
-              color: Colors.grey[100],
-              shape: BoxShape.circle,
-            ),
+            decoration: BoxDecoration(color: Colors.grey[100], shape: BoxShape.circle),
             child: Icon(Icons.filter_list, size: 32, color: Colors.grey[400]),
           ),
           const SizedBox(height: 16),
           Text(
             'No Results Found',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-              color: Colors.grey[900],
-            ),
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.grey[900]),
           ),
           const SizedBox(height: 8),
-          Text(
-            'Try adjusting your filters or search term',
-            style: TextStyle(
-              color: Colors.grey[600],
-            ),
-          ),
+          Text('Try adjusting your filters or search term', style: TextStyle(color: Colors.grey[600])),
         ],
       ),
     );
@@ -356,11 +303,7 @@ class HistoryView extends GetView<HistoryController> {
   _StatusStyle _getStatusStyle(ViolationStatus status) {
     switch (status) {
       case ViolationStatus.resolved:
-        return _StatusStyle(
-          backgroundColor: Colors.green[100]!,
-          textColor: Colors.green[700]!,
-          label: 'Resolved',
-        );
+        return _StatusStyle(backgroundColor: Colors.green[100]!, textColor: Colors.green[700]!, label: 'Resolved');
       case ViolationStatus.acknowledged:
         return _StatusStyle(
           backgroundColor: Colors.yellow[100]!,
@@ -368,40 +311,20 @@ class HistoryView extends GetView<HistoryController> {
           label: 'Acknowledged',
         );
       case ViolationStatus.dismissed:
-        return _StatusStyle(
-          backgroundColor: Colors.grey[100]!,
-          textColor: Colors.grey[700]!,
-          label: 'Dismissed',
-        );
+        return _StatusStyle(backgroundColor: Colors.grey[100]!, textColor: Colors.grey[700]!, label: 'Dismissed');
       case ViolationStatus.active:
-        return _StatusStyle(
-          backgroundColor: Colors.red[100]!,
-          textColor: Colors.red[700]!,
-          label: 'Active',
-        );
+        return _StatusStyle(backgroundColor: Colors.red[100]!, textColor: Colors.red[700]!, label: 'Active');
     }
   }
 
   _StatusStyle _getSeverityStyle(ViolationSeverity severity) {
     switch (severity) {
       case ViolationSeverity.high:
-        return _StatusStyle(
-          backgroundColor: Colors.red[100]!,
-          textColor: Colors.red[700]!,
-          label: 'HIGH',
-        );
+        return _StatusStyle(backgroundColor: Colors.red[100]!, textColor: Colors.red[700]!, label: 'HIGH');
       case ViolationSeverity.medium:
-        return _StatusStyle(
-          backgroundColor: Colors.orange[100]!,
-          textColor: Colors.orange[700]!,
-          label: 'MEDIUM',
-        );
+        return _StatusStyle(backgroundColor: Colors.orange[100]!, textColor: Colors.orange[700]!, label: 'MEDIUM');
       case ViolationSeverity.low:
-        return _StatusStyle(
-          backgroundColor: Colors.blue[100]!,
-          textColor: Colors.blue[700]!,
-          label: 'LOW',
-        );
+        return _StatusStyle(backgroundColor: Colors.blue[100]!, textColor: Colors.blue[700]!, label: 'LOW');
     }
   }
 }
@@ -411,9 +334,5 @@ class _StatusStyle {
   final Color textColor;
   final String label;
 
-  _StatusStyle({
-    required this.backgroundColor,
-    required this.textColor,
-    required this.label,
-  });
+  _StatusStyle({required this.backgroundColor, required this.textColor, required this.label});
 }

@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:get/get.dart';
 import '../../../../data/models/violation_model.dart';
 import '../../../../data/services/safety_api_service.dart';
@@ -32,6 +34,7 @@ class HistoryController extends GetxController {
     isLoading.value = true;
     try {
       final raw = await _api.getViolations(
+        q: searchTerm.value,
         limit: _pageSize,
         offset: _offset,
       );
@@ -44,8 +47,11 @@ class HistoryController extends GetxController {
       _offset += fetched.length;
       if (fetched.length < _pageSize) hasMore.value = false;
     } catch (e) {
-      Get.snackbar('Error', 'Failed to load violations: $e',
-          snackPosition: SnackPosition.BOTTOM);
+      Get.snackbar(
+        'Error',
+        'Failed to load violations: $e',
+        snackPosition: SnackPosition.BOTTOM,
+      );
     } finally {
       isLoading.value = false;
     }
@@ -67,24 +73,44 @@ class HistoryController extends GetxController {
       '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
 
   String _monthAbbr(int m) => const [
-        '', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
-      ][m];
+    '',
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
+  ][m];
 
   // ── Filtering ──────────────────────────────────────────────────────────────
   List<ViolationModel> get filteredData {
     return violations.where((item) {
       final matchesSearch =
-          item.description.toLowerCase().contains(searchTerm.value.toLowerCase()) ||
-              item.zone.toLowerCase().contains(searchTerm.value.toLowerCase());
+          item.description.toLowerCase().contains(
+            searchTerm.value.toLowerCase(),
+          ) ||
+          item.zone.toLowerCase().contains(searchTerm.value.toLowerCase());
       final matchesFilter =
           filterType.value == null || item.type == filterType.value;
       return matchesSearch && matchesFilter;
     }).toList();
   }
 
-  void setSearchTerm(String value) => searchTerm.value = value;
-  void setFilterType(ViolationType? type) => filterType.value = type;
+  void setSearchTerm(String value) {
+    searchTerm.value = value;
+    loadHistoryData();
+  }
+
+  void setFilterType(ViolationType? type) {
+    filterType.value = type;
+    loadHistoryData();
+  }
 
   // ── Navigation ─────────────────────────────────────────────────────────────
   void viewViolationDetails(ViolationModel violation) {
@@ -95,11 +121,24 @@ class HistoryController extends GetxController {
     );
   }
 
-  void exportData() {
-    Get.snackbar(
-      'Export',
-      'Exporting ${filteredData.length} records...',
-      snackPosition: SnackPosition.BOTTOM,
-    );
+  Future<void> exportData() async {
+    try {
+      final bytes = await _api.exportViolations(q: searchTerm.value);
+      final file = File(
+        '${Directory.systemTemp.path}${Platform.pathSeparator}violations_${DateTime.now().millisecondsSinceEpoch}.csv',
+      );
+      await file.writeAsBytes(bytes);
+      Get.snackbar(
+        'Export Ready',
+        'Saved to ${file.path}',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+    } catch (e) {
+      Get.snackbar(
+        'Export Failed',
+        e.toString(),
+        snackPosition: SnackPosition.BOTTOM,
+      );
+    }
   }
 }

@@ -10,9 +10,22 @@ class AppConfig {
   static ThemeMode appDefaultTheme = ThemeMode.light;
 
   // ───── API Config ─────
-  static const String baseUrl = 'http://192.168.1.10:8000/api/v1/';
-  static const String imageBaseUrl = 'http://192.168.1.10:8000';
-  static const String wsBaseUrl = 'ws://192.168.1.10:8000/ws';
+  static const String baseUrl = String.fromEnvironment(
+    'API_BASE_URL',
+    defaultValue: 'http://192.168.1.10:8000/api/v1/',
+  );
+  static const String imageBaseUrl = String.fromEnvironment(
+    'IMAGE_BASE_URL',
+    defaultValue: 'http://192.168.1.10:8000',
+  );
+  static const String wsBaseUrl = String.fromEnvironment(
+    'WS_BASE_URL',
+    defaultValue: 'ws://192.168.1.10:8000/ws',
+  );
+  static const bool enableMockFallback = bool.fromEnvironment(
+    'ENABLE_MOCK_FALLBACK',
+    defaultValue: false,
+  );
 
   static const Duration apiTimeout = Duration(seconds: 15);
   static const int paginationLimit = 10;

@@ -1,5 +1,6 @@
 import 'package:construction_safety/common/widgets/build_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import '../../../../data/models/violation_model.dart';
 import '../controllers/violation_detail_controller.dart';
@@ -9,49 +10,56 @@ class ViolationDetailView extends GetView<ViolationDetailController> {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: Scaffold(
-        backgroundColor: Colors.grey[50],
-        body: Obx(() {
-          final violation = controller.selectedViolation.value;
-          if (violation == null) {
-            return const Center(child: CircularProgressIndicator());
-          }
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.dark.copyWith(
+        statusBarIconBrightness: Brightness.dark,
+        statusBarBrightness: Brightness.light,
+        statusBarColor: Colors.white,
+      ),
+      child: SafeArea(
+        child: Scaffold(
+          backgroundColor: Colors.grey[50],
+          body: Obx(() {
+            final violation = controller.selectedViolation.value;
+            if (violation == null) {
+              return const Center(child: CircularProgressIndicator());
+            }
 
-          final config = controller.getSeverityConfig(violation.severity);
-          final recommendedActions = controller.getRecommendedActions(violation.type);
+            final config = controller.getSeverityConfig(violation.severity);
+            final recommendedActions = controller.getRecommendedActions(violation.type);
 
-          return Column(
-            children: [
-              // Header
-              _buildHeader(),
-              // Content
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    children: [
-                      // Severity Banner
-                      _buildSeverityBanner(violation, config),
-                      const SizedBox(height: 16),
-                      // Evidence Photo
-                      _buildEvidencePhoto(context, violation),
-                      const SizedBox(height: 16),
-                      // Location & Time Info
-                      _buildIncidentInfo(violation),
-                      const SizedBox(height: 16),
-                      // Recommended Actions
-                      _buildRecommendedActions(recommendedActions),
-                      const SizedBox(height: 16),
-                      // Action Buttons
-                      _buildActionButtons(violation),
-                    ],
+            return Column(
+              children: [
+                // Header
+                _buildHeader(),
+                // Content
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      children: [
+                        // Severity Banner
+                        _buildSeverityBanner(violation, config),
+                        const SizedBox(height: 16),
+                        // Evidence Photo
+                        _buildEvidencePhoto(context, violation),
+                        const SizedBox(height: 16),
+                        // Location & Time Info
+                        _buildIncidentInfo(violation),
+                        const SizedBox(height: 16),
+                        // Recommended Actions
+                        _buildRecommendedActions(recommendedActions),
+                        const SizedBox(height: 16),
+                        // Action Buttons
+                        _buildActionButtons(violation),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            ],
-          );
-        }),
+              ],
+            );
+          }),
+        ),
       ),
     );
   }
