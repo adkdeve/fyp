@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../data/models/violation_model.dart';
 import '../../../../data/services/safety_api_service.dart';
@@ -13,6 +14,7 @@ class HistoryController extends GetxController {
   final Rx<ViolationType?> filterType = Rx<ViolationType?>(null);
   final violations = <ViolationModel>[].obs;
   final isLoading = false.obs;
+  final searchController = TextEditingController();
 
   // Pagination
   int _offset = 0;
@@ -22,7 +24,15 @@ class HistoryController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    searchController.addListener(_handleSearchChanged);
     loadHistoryData();
+  }
+
+  @override
+  void onClose() {
+    searchController.removeListener(_handleSearchChanged);
+    searchController.dispose();
+    super.onClose();
   }
 
   Future<void> loadHistoryData({bool refresh = true}) async {
@@ -102,7 +112,12 @@ class HistoryController extends GetxController {
     }).toList();
   }
 
+  void _handleSearchChanged() {
+    setSearchTerm(searchController.text);
+  }
+
   void setSearchTerm(String value) {
+    if (searchTerm.value == value) return;
     searchTerm.value = value;
     loadHistoryData();
   }
@@ -119,6 +134,16 @@ class HistoryController extends GetxController {
       arguments: violation,
       binding: ViolationDetailBinding(),
     );
+  }
+
+  void applyViolationUpdate(ViolationModel updated) {
+    final index = violations.indexWhere((item) => item.id == updated.id);
+    if (index != -1) {
+      violations[index] = updated;
+      violations.refresh();
+      return;
+    }
+    violations.insert(0, updated);
   }
 
   Future<void> exportData() async {

@@ -12,7 +12,7 @@ class ProfileView extends GetView<ProfileController> {
       value: SystemUiOverlayStyle.dark.copyWith(
         statusBarIconBrightness: Brightness.dark,
         statusBarBrightness: Brightness.light,
-        statusBarColor: Colors.white,
+        statusBarColor: Colors.transparent,
       ),
       child: Scaffold(
         backgroundColor: const Color(0xFFF9FAFB), // bg-gray-50
@@ -110,6 +110,7 @@ class ProfileView extends GetView<ProfileController> {
 
   Widget _buildProfilePicture() {
     return Obx(() {
+      final avatarUrl = controller.resolvedAvatarUrl;
       return Container(
         width: double.infinity, // Make profile picture container full width
         padding: const EdgeInsets.all(24),
@@ -124,22 +125,18 @@ class ProfileView extends GetView<ProfileController> {
               width: 96,
               height: 96,
               decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [Color(0xFF3B82F6), Color(0xFF1D4ED8)],
-                ),
                 shape: BoxShape.circle,
               ),
-              child: Center(
-                child: Text(
-                  controller.getInitials(),
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 24,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
+              child: ClipOval(
+                child: avatarUrl != null
+                    ? Image.network(
+                        avatarUrl,
+                        fit: BoxFit.cover,
+                        width: 96,
+                        height: 96,
+                        errorBuilder: (_, __, ___) => _buildAvatarFallback(),
+                      )
+                    : _buildAvatarFallback(),
               ),
             ),
             const SizedBox(height: 16),
@@ -156,6 +153,29 @@ class ProfileView extends GetView<ProfileController> {
         ),
       );
     });
+  }
+
+  Widget _buildAvatarFallback() {
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF3B82F6), Color(0xFF1D4ED8)],
+        ),
+        shape: BoxShape.circle,
+      ),
+      child: Center(
+        child: Text(
+          controller.getInitials(),
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 24,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+    );
   }
 
   Widget _buildPersonalInformation() {
@@ -299,7 +319,8 @@ class ProfileView extends GetView<ProfileController> {
             const SizedBox(height: 8),
             controller.isEditing.value
                 ? TextFormField(
-                    initialValue: controller.formData[field] ?? '',
+                    controller: controller.controllerForField(field),
+                    readOnly: !controller.isFieldEditable(field),
                     onChanged: (value) => controller.updateField(field, value),
                     decoration: InputDecoration(
                       contentPadding: const EdgeInsets.symmetric(
@@ -314,6 +335,10 @@ class ProfileView extends GetView<ProfileController> {
                         borderRadius: BorderRadius.circular(8),
                         borderSide: const BorderSide(color: Color(0xFF2563EB)),
                       ),
+                      filled: !controller.isFieldEditable(field),
+                      fillColor: !controller.isFieldEditable(field)
+                          ? const Color(0xFFF3F4F6)
+                          : null,
                     ),
                   )
                 : SizedBox(

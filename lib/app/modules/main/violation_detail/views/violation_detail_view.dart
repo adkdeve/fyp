@@ -14,7 +14,7 @@ class ViolationDetailView extends GetView<ViolationDetailController> {
       value: SystemUiOverlayStyle.dark.copyWith(
         statusBarIconBrightness: Brightness.dark,
         statusBarBrightness: Brightness.light,
-        statusBarColor: Colors.white,
+        statusBarColor: Colors.transparent,
       ),
       child: SafeArea(
         child: Scaffold(

@@ -12,7 +12,7 @@ class SettingsView extends GetView<SettingsController> {
       value: SystemUiOverlayStyle.dark.copyWith(
         statusBarIconBrightness: Brightness.dark,
         statusBarBrightness: Brightness.light,
-        statusBarColor: Colors.white,
+        statusBarColor: Colors.transparent,
       ),
       child: SafeArea(
         child: Scaffold(
@@ -109,15 +109,7 @@ class SettingsView extends GetView<SettingsController> {
             // Profile Content
             Obx(() {
               final user = controller.currentUser.value;
-              final initials = (user?.name.isNotEmpty == true)
-                  ? user!.name
-                        .split(' ')
-                        .where((p) => p.isNotEmpty)
-                        .take(2)
-                        .map((p) => p[0])
-                        .join()
-                        .toUpperCase()
-                  : 'U';
+              final avatarUrl = controller.resolvedAvatarUrl;
               return Container(
                 padding: const EdgeInsets.all(16),
                 child: Row(
@@ -127,22 +119,19 @@ class SettingsView extends GetView<SettingsController> {
                       width: 64,
                       height: 64,
                       decoration: const BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [Colors.blue, Colors.blueAccent],
-                        ),
                         shape: BoxShape.circle,
                       ),
-                      child: Center(
-                        child: Text(
-                          initials,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
+                      child: ClipOval(
+                        child: avatarUrl != null
+                            ? Image.network(
+                                avatarUrl,
+                                fit: BoxFit.cover,
+                                width: 64,
+                                height: 64,
+                                errorBuilder: (_, __, ___) =>
+                                    _buildAvatarFallback(),
+                              )
+                            : _buildAvatarFallback(),
                       ),
                     ),
                     const SizedBox(width: 16),
@@ -185,6 +174,29 @@ class SettingsView extends GetView<SettingsController> {
               );
             }),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAvatarFallback() {
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Colors.blue, Colors.blueAccent],
+        ),
+        shape: BoxShape.circle,
+      ),
+      child: Center(
+        child: Text(
+          controller.userInitials,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
         ),
       ),
     );
@@ -242,6 +254,16 @@ class SettingsView extends GetView<SettingsController> {
                   value: settings.mediumAlerts,
                   onChanged: (_) =>
                       controller.toggleNotification('mediumAlerts'),
+                ),
+                _buildNotificationItem(
+                  icon: Icons.notifications,
+                  iconColor: Colors.blue,
+                  iconBgColor: Colors.blue[100]!,
+                  title: 'Low Alerts',
+                  subtitle: 'Low priority violations',
+                  value: settings.lowAlerts,
+                  onChanged: (_) =>
+                      controller.toggleNotification('lowAlerts'),
                 ),
               ],
             );
@@ -376,7 +398,7 @@ class SettingsView extends GetView<SettingsController> {
                             const SizedBox(height: 2),
                             Obx(
                               () => Text(
-                                '${controller.cameraCount.value} active cameras',
+                                '${controller.cameraCount.value} cameras configured',
                                 style: TextStyle(
                                   fontSize: 12,
                                   color: Colors.grey[600],

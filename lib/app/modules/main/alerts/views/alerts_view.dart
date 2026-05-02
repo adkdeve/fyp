@@ -14,7 +14,7 @@ class AlertsView extends StatelessWidget {
     final overlayStyle = SystemUiOverlayStyle.dark.copyWith(
       statusBarIconBrightness: Brightness.dark,
       statusBarBrightness: Brightness.light,
-      statusBarColor: Colors.white,
+      statusBarColor: Colors.transparent,
     );
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
@@ -54,13 +54,22 @@ class AlertsView extends StatelessWidget {
     return Column(
       children: [
         TextField(
-          onChanged: controller.setSearchTerm,
+          controller: controller.searchController,
           decoration: InputDecoration(
             hintText: 'Search alerts...',
-            prefixIcon: const Icon(Icons.search, size: 20),
-            filled: true,
-            fillColor: Colors.white,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            prefixIcon: const Icon(Icons.search, size: 20, color: Colors.grey),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 12,
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Colors.grey),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Colors.blue, width: 2),
+            ),
           ),
         ),
         const SizedBox(height: 10),
@@ -92,6 +101,14 @@ class AlertsView extends StatelessWidget {
       showCheckmark: false,
       onSelected: (_) =>
           controller.setSeverityFilter(selected ? null : severity),
+      backgroundColor: Colors.grey[100],
+      selectedColor: Colors.blue[100],
+      labelStyle: TextStyle(
+        color: selected ? Colors.blue[700] : Colors.grey[600],
+        fontSize: 12,
+      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      side: BorderSide.none,
     );
   }
 

@@ -14,7 +14,7 @@ class HistoryView extends GetView<HistoryController> {
       value: SystemUiOverlayStyle.dark.copyWith(
         statusBarIconBrightness: Brightness.dark,
         statusBarBrightness: Brightness.light,
-        statusBarColor: Colors.white,
+        statusBarColor: Colors.transparent,
       ),
       child: SafeArea(
         child: Scaffold(
@@ -80,7 +80,7 @@ class HistoryView extends GetView<HistoryController> {
 
   Widget _buildSearchBar() {
     return TextField(
-      onChanged: controller.setSearchTerm,
+      controller: controller.searchController,
       decoration: InputDecoration(
         hintText: 'Search violations...',
         prefixIcon: const Icon(Icons.search, size: 20, color: Colors.grey),

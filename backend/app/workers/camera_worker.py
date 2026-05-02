@@ -64,6 +64,9 @@ class CameraWorker:
 
     def stop(self):
         self._stop.set()
+        if self._thread and self._thread.is_alive() and self._thread is not threading.current_thread():
+            self._thread.join(timeout=3)
+        self._thread = None
         frame_store.remove_camera(self.camera_id)
         logger.info(f"[Cam {self.camera_id}] Stop signal sent")
 
@@ -162,6 +165,10 @@ class CameraWorker:
     def _record_violation(self, detection, snapshot_url: str | None) -> dict | None:
         db = SessionLocal()
         try:
+            camera = db.get(Camera, self.camera_id)
+            if not camera or not camera.enabled:
+                return None
+
             v = Violation(
                 camera_id    = self.camera_id,
                 type         = detection.type,
@@ -174,16 +181,20 @@ class CameraWorker:
 
             supervisors = (
                 db.query(User)
-                .filter(User.role == UserRole.supervisor, User.is_active == True)
+                .filter(
+                    User.role == UserRole.supervisor,
+                    User.is_active == True,
+                    User.site_id == camera.site_id,
+                )
                 .all()
             )
             recipient_ids: list[int] = []
             for sup in supervisors:
+                if detection.severity == Severity.low and not sup.notify_low_alerts:
+                    continue
                 if detection.severity == Severity.high and not sup.notify_critical_alerts:
                     continue
                 if detection.severity == Severity.medium and not sup.notify_medium_alerts:
-                    continue
-                if detection.severity == Severity.low:
                     continue
                 db.add(Alert(violation_id=v.id, user_id=sup.id,
                              channel=AlertChannel.websocket))

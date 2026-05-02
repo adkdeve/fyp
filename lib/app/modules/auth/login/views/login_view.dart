@@ -5,7 +5,9 @@ import 'package:get/get.dart';
 import '../controllers/login_controller.dart';
 
 class LoginView extends GetView<LoginController> {
-  const LoginView({super.key});
+  LoginView({super.key});
+
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
   @override
   Widget build(BuildContext context) {
@@ -22,7 +24,7 @@ class LoginView extends GetView<LoginController> {
             child: SingleChildScrollView(
               padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 32.h),
               child: Form(
-                key: controller.formKey,
+                key: _formKey,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -95,7 +97,9 @@ class LoginView extends GetView<LoginController> {
 
                   // Login button
                   Obx(() => ElevatedButton(
-                        onPressed: controller.isLoading.value ? null : controller.login,
+                        onPressed: controller.isLoading.value
+                            ? null
+                            : () => controller.login(_formKey),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF3B82F6),
                           disabledBackgroundColor: const Color(0xFF3B82F6).withOpacity(0.5),

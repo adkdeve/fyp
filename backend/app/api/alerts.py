@@ -8,7 +8,7 @@ from ..models.camera import Camera
 from ..models.user import User
 from ..models.violation import Severity, Violation
 from ..schemas.alert import AlertOut
-from .deps import get_current_user
+from .deps import get_current_user, scope_site_query
 
 router = APIRouter(prefix="/alerts", tags=["Alerts"])
 
@@ -16,14 +16,21 @@ router = APIRouter(prefix="/alerts", tags=["Alerts"])
 @router.get("", response_model=list[AlertOut])
 def list_alerts(
     unread_only: bool = Query(False),
+    enabled_only: bool = Query(False),
     q: str | None = Query(None),
     severity: Severity | None = Query(None),
     limit: int = Query(50, le=200),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    query = db.query(Alert).join(Alert.violation).join(Violation.camera)
+    query = scope_site_query(
+        db.query(Alert).join(Alert.violation).join(Violation.camera),
+        current_user,
+        Camera.site_id,
+    )
     query = query.filter(Alert.user_id == current_user.id)
+    if enabled_only:
+        query = query.filter(Camera.enabled == True)
     if unread_only:
         query = query.filter(Alert.read == False)
     if severity:

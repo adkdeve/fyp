@@ -10,7 +10,7 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U safety"]
+      test: ["CMD-SHELL", "pg_isready -U safety -d safety_db"]
       interval: 5s
       timeout: 3s
       retries: 10
@@ -18,6 +18,8 @@ services:
   api:
     build:
       context: .
+      args:
+        INSTALL_AI: "true"
     image: construction-safety-backend:local
     environment:
       DATABASE_URL: postgresql+psycopg2://safety:safety@db:5432/safety_db
@@ -28,7 +30,7 @@ services:
       CORS_ORIGINS: http://localhost:3000,http://localhost:5173
       MEDIA_DIR: /app/media
       MODEL_PATH: /app/model.pt
-      DETECTOR: mock
+      DETECTOR: yolo
       RUN_MIGRATIONS: "true"
     ports:
       - "8000:8000"

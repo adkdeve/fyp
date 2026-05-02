@@ -10,15 +10,15 @@ class LoginController extends GetxController {
 
   final emailCtrl = TextEditingController();
   final passwordCtrl = TextEditingController();
-  final formKey = GlobalKey<FormState>();
 
   final isLoading = false.obs;
   final obscurePassword = true.obs;
 
   void togglePasswordVisibility() => obscurePassword.value = !obscurePassword.value;
 
-  Future<void> login() async {
+  Future<void> login(GlobalKey<FormState> formKey) async {
     if (!formKey.currentState!.validate()) return;
+    FocusManager.instance.primaryFocus?.unfocus();
     isLoading.value = true;
     try {
       final res = await _api.login(
@@ -45,7 +45,9 @@ class LoginController extends GetxController {
         duration: const Duration(seconds: 4),
       );
     } finally {
-      isLoading.value = false;
+      if (!isClosed) {
+        isLoading.value = false;
+      }
     }
   }
 

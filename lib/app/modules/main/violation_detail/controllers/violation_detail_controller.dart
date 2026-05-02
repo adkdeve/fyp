@@ -4,9 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../data/models/violation_model.dart';
 import '../../../../data/services/safety_api_service.dart';
+import '../../alerts/controllers/alerts_controller.dart';
+import '../../controllers/main_controller.dart';
+import '../../history/controllers/history_controller.dart';
 
 class ViolationDetailController extends GetxController {
   final SafetyApiService _api = SafetyApiService.to;
+  final MainController _main = Get.find<MainController>();
 
   final Rx<ViolationModel?> selectedViolation = Rx<ViolationModel?>(null);
   final isResolving = false.obs;
@@ -17,6 +21,7 @@ class ViolationDetailController extends GetxController {
     final violation = Get.arguments as ViolationModel?;
     if (violation != null) {
       selectedViolation.value = violation;
+      _main.setSelectedViolation(violation);
     } else {
       Get.back();
     }
@@ -31,7 +36,15 @@ class ViolationDetailController extends GetxController {
       if (id != null) {
         await _api.resolveViolation(id, 'resolved');
       }
-      selectedViolation.value = v.copyWith(status: ViolationStatus.resolved);
+      final updated = v.copyWith(status: ViolationStatus.resolved);
+      selectedViolation.value = updated;
+      _main.upsertViolation(updated);
+      if (Get.isRegistered<AlertsController>()) {
+        Get.find<AlertsController>().applyViolationUpdate(updated);
+      }
+      if (Get.isRegistered<HistoryController>()) {
+        Get.find<HistoryController>().applyViolationUpdate(updated);
+      }
       Get.snackbar(
         'Resolved',
         'Violation marked as resolved',
@@ -53,7 +66,15 @@ class ViolationDetailController extends GetxController {
       if (id != null) {
         await _api.resolveViolation(id, 'false_positive');
       }
-      selectedViolation.value = v.copyWith(status: ViolationStatus.dismissed);
+      final updated = v.copyWith(status: ViolationStatus.dismissed);
+      selectedViolation.value = updated;
+      _main.upsertViolation(updated);
+      if (Get.isRegistered<AlertsController>()) {
+        Get.find<AlertsController>().applyViolationUpdate(updated);
+      }
+      if (Get.isRegistered<HistoryController>()) {
+        Get.find<HistoryController>().applyViolationUpdate(updated);
+      }
       Get.snackbar(
         'Updated',
         'Marked as false positive',

@@ -13,7 +13,7 @@ class CameraManagementView extends GetView<CameraManagementController> {
       value: SystemUiOverlayStyle.dark.copyWith(
         statusBarIconBrightness: Brightness.dark,
         statusBarBrightness: Brightness.light,
-        statusBarColor: Colors.white,
+        statusBarColor: Colors.transparent,
       ),
       child: SafeArea(
         child: Scaffold(
@@ -37,7 +37,7 @@ class CameraManagementView extends GetView<CameraManagementController> {
       padding: const EdgeInsets.all(16),
       child: Column(
         children: [
-          // Back button, title, and add button
+          // Back button and title
           Row(
             children: [
               IconButton(
@@ -69,14 +69,6 @@ class CameraManagementView extends GetView<CameraManagementController> {
                   ],
                 ),
               ),
-              IconButton(
-                onPressed: controller.handleAddCamera,
-                style: IconButton.styleFrom(
-                  backgroundColor: Colors.blue[600],
-                  foregroundColor: Colors.white,
-                ),
-                icon: const Icon(Icons.add),
-              ),
             ],
           ),
           const SizedBox(height: 16),
@@ -93,13 +85,22 @@ class CameraManagementView extends GetView<CameraManagementController> {
     return Column(
       children: [
         TextField(
-          onChanged: controller.setSearchTerm,
+          controller: controller.searchController,
           decoration: InputDecoration(
             hintText: 'Search cameras...',
-            prefixIcon: const Icon(Icons.search, size: 20),
-            filled: true,
-            fillColor: Colors.white,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            prefixIcon: const Icon(Icons.search, size: 20, color: Colors.grey),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 12,
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Colors.grey),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Colors.blue, width: 2),
+            ),
           ),
         ),
         const SizedBox(height: 8),
@@ -130,6 +131,14 @@ class CameraManagementView extends GetView<CameraManagementController> {
       selected: selected,
       showCheckmark: false,
       onSelected: (_) => controller.setStatusFilter(value),
+      backgroundColor: Colors.grey[100],
+      selectedColor: Colors.blue[100],
+      labelStyle: TextStyle(
+        color: selected ? Colors.blue[700] : Colors.grey[600],
+        fontSize: 12,
+      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      side: BorderSide.none,
     );
   }
 
@@ -137,6 +146,16 @@ class CameraManagementView extends GetView<CameraManagementController> {
     return Obx(() {
       return Row(
         children: [
+          Expanded(
+            child: _buildStatCard(
+              'Enabled',
+              '${controller.enabledCount}',
+              Colors.blue[50]!,
+              Colors.blue[200]!,
+              Colors.blue[700]!,
+            ),
+          ),
+          const SizedBox(width: 8),
           Expanded(
             child: _buildStatCard(
               'Online',
@@ -149,18 +168,8 @@ class CameraManagementView extends GetView<CameraManagementController> {
           const SizedBox(width: 8),
           Expanded(
             child: _buildStatCard(
-              'Recording',
-              '${controller.recordingCount}',
-              Colors.blue[50]!,
-              Colors.blue[200]!,
-              Colors.blue[700]!,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: _buildStatCard(
-              'Offline',
-              '${controller.offlineCount}',
+              'Disabled',
+              '${controller.disabledCount}',
               Colors.red[50]!,
               Colors.red[200]!,
               Colors.red[700]!,
@@ -218,7 +227,6 @@ class CameraManagementView extends GetView<CameraManagementController> {
     return Obx(() {
       final isOnline =
           camera.enabled && camera.status.toLowerCase() == "online";
-      final isRecording = controller.isRecording(camera.id);
 
       return Container(
         margin: const EdgeInsets.only(bottom: 12),
@@ -311,10 +319,10 @@ class CameraManagementView extends GetView<CameraManagementController> {
               ),
               const SizedBox(height: 12),
               // Camera preview
-              _buildCameraPreview(camera, isRecording),
+              _buildCameraPreview(camera),
               const SizedBox(height: 12),
               // Controls
-              _buildCameraControls(camera, isOnline, isRecording),
+              _buildCameraControls(camera, isOnline),
             ],
           ),
         ),
@@ -322,107 +330,87 @@ class CameraManagementView extends GetView<CameraManagementController> {
     });
   }
 
-  Widget _buildCameraPreview(CameraModel camera, bool isRecording) {
+  Widget _buildCameraPreview(CameraModel camera) {
     return GestureDetector(
-      onTap: () => controller.handleViewFeed(camera),
+      onTap: camera.enabled ? () => controller.handleViewFeed(camera) : null,
       child: Container(
         width: double.infinity,
-        height: 128,
+        padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: Colors.grey[900],
+          color: camera.enabled ? Colors.blueGrey[900] : Colors.grey[200],
           borderRadius: BorderRadius.circular(12),
         ),
-        child: Stack(
+        child: Row(
           children: [
-            // Grid pattern background
-            Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                gradient: const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [Colors.grey, Colors.black87],
-                ),
-              ),
-              child: CustomPaint(painter: _GridPainter()),
+            Icon(
+              camera.enabled ? Icons.videocam : Icons.videocam_off,
+              size: 28,
+              color: camera.enabled ? Colors.white : Colors.grey[700],
             ),
-            // Center icon
-            const Center(
-              child: Icon(Icons.videocam, size: 32, color: Colors.white54),
-            ),
-            // Recording indicator
-            if (isRecording) ...[
-              Positioned(
-                top: 8,
-                left: 8,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    camera.enabled
+                        ? 'Live monitoring is available for this camera.'
+                        : 'This camera is currently excluded from monitoring.',
+                    style: TextStyle(
+                      color: camera.enabled ? Colors.white : Colors.grey[800],
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
-                  decoration: BoxDecoration(
-                    color: Colors.red,
-                    borderRadius: BorderRadius.circular(12),
+                  const SizedBox(height: 6),
+                  Text(
+                    camera.enabled
+                        ? 'Open the feed to inspect the latest frames and take snapshots.'
+                        : 'Enable it to make it visible on the dashboard and eligible for alert storage.',
+                    style: TextStyle(
+                      color: camera.enabled
+                          ? Colors.white70
+                          : Colors.grey[700],
+                      fontSize: 12,
+                    ),
                   ),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 6,
-                        height: 6,
-                        decoration: const BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                      const SizedBox(width: 4),
-                      const Text(
-                        'REC',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                ],
               ),
-            ],
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildCameraControls(
-    CameraModel camera,
-    bool isOnline,
-    bool isRecording,
-  ) {
+  Widget _buildCameraControls(CameraModel camera, bool isOnline) {
     return Row(
       children: [
-        // Recording button
         Expanded(
           child: ElevatedButton.icon(
-            onPressed: isOnline
-                ? () => controller.toggleRecording(camera.id)
+            onPressed: camera.enabled
+                ? () => controller.handleViewFeed(camera)
                 : null,
             icon: Icon(
-              Icons.circle,
+              Icons.open_in_new,
               size: 16,
-              color: isRecording ? Colors.red : Colors.grey,
+              color: camera.enabled ? Colors.blue[700] : Colors.grey,
             ),
             label: Text(
-              isRecording ? 'Recording' : 'Open Feed',
+              'Open Feed',
               style: TextStyle(
-                color: isRecording ? Colors.red[700] : Colors.grey[700],
+                color: camera.enabled ? Colors.blue[700] : Colors.grey[700],
               ),
             ),
             style: ElevatedButton.styleFrom(
-              backgroundColor: isRecording ? Colors.red[50] : Colors.grey[50],
-              foregroundColor: isRecording ? Colors.red[700] : Colors.grey[700],
+              backgroundColor: camera.enabled
+                  ? Colors.blue[50]
+                  : Colors.grey[50],
+              foregroundColor: camera.enabled
+                  ? Colors.blue[700]
+                  : Colors.grey[700],
               side: BorderSide(
-                color: isRecording ? Colors.red[200]! : Colors.grey[200]!,
+                color: camera.enabled ? Colors.blue[200]! : Colors.grey[200]!,
               ),
               padding: const EdgeInsets.symmetric(vertical: 12),
               shape: RoundedRectangleBorder(
@@ -458,34 +446,4 @@ class CameraManagementView extends GetView<CameraManagementController> {
       ],
     );
   }
-}
-
-// Custom painter for the grid pattern
-class _GridPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Colors.white.withOpacity(0.1)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 0.5;
-
-    const cellSize = 20.0;
-    final cols = (size.width / cellSize).ceil();
-    final rows = (size.height / cellSize).ceil();
-
-    // Draw vertical lines
-    for (var i = 0; i <= cols; i++) {
-      final x = i * cellSize;
-      canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
-    }
-
-    // Draw horizontal lines
-    for (var i = 0; i <= rows; i++) {
-      final y = i * cellSize;
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

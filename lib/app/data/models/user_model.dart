@@ -13,8 +13,10 @@ class UserModel {
   final String? image;
   final String? company;
   final String? location;
+  final int? siteId;
   final bool notifyCriticalAlerts;
   final bool notifyMediumAlerts;
+  final bool notifyLowAlerts;
 
   UserModel({
     required this.id,
@@ -31,8 +33,10 @@ class UserModel {
     this.image,
     this.company,
     this.location,
+    this.siteId,
     this.notifyCriticalAlerts = true,
     this.notifyMediumAlerts = true,
+    this.notifyLowAlerts = true,
   });
 
   /// Full name convenience getter
@@ -47,6 +51,7 @@ class UserModel {
     final last =
         json['last_name'] as String? ??
         (parts.length > 1 ? parts.sublist(1).join(' ') : '');
+    final rawSiteId = json['site_id'];
 
     return UserModel(
       id: (json['id'] as int?) ?? 0,
@@ -65,8 +70,10 @@ class UserModel {
       image: (json['avatar_url'] ?? json['image'])?.toString(),
       company: json['company']?.toString(),
       location: json['location']?.toString(),
+      siteId: rawSiteId is int ? rawSiteId : int.tryParse('$rawSiteId'),
       notifyCriticalAlerts: (json['notify_critical_alerts'] as bool?) ?? true,
       notifyMediumAlerts: (json['notify_medium_alerts'] as bool?) ?? true,
+      notifyLowAlerts: (json['notify_low_alerts'] as bool?) ?? true,
     );
   }
 
@@ -89,7 +96,9 @@ class UserModel {
     'avatar_url': image,
     'company': company,
     'location': location,
+    'site_id': siteId,
     'notify_critical_alerts': notifyCriticalAlerts,
     'notify_medium_alerts': notifyMediumAlerts,
+    'notify_low_alerts': notifyLowAlerts,
   };
 }

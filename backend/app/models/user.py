@@ -1,7 +1,7 @@
 import enum
 from datetime import datetime
-from sqlalchemy import String, DateTime, Enum, Boolean
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import String, DateTime, Enum, Boolean, ForeignKey
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
 from ..core.db import Base
@@ -25,7 +25,11 @@ class User(Base):
     avatar_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     company: Mapped[str | None] = mapped_column(String(160), nullable=True)
     location: Mapped[str | None] = mapped_column(String(250), nullable=True)
+    site_id: Mapped[int | None] = mapped_column(ForeignKey("sites.id", ondelete="SET NULL"), nullable=True)
     notify_critical_alerts: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     notify_medium_alerts: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    notify_low_alerts: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    site = relationship("Site", lazy="joined")

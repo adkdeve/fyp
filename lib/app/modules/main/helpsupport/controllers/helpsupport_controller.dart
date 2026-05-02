@@ -6,6 +6,7 @@ class HelpSupportController extends GetxController {
   var searchQuery = ''.obs;
   var expandedFaqIndex = Rx<int?>(null);
   var isLoading = false.obs;
+  final searchController = TextEditingController();
 
   // FAQ data
   final List<Map<String, String>> faqs = [
@@ -64,6 +65,19 @@ class HelpSupportController extends GetxController {
     }).toList();
   }
 
+  @override
+  void onInit() {
+    super.onInit();
+    searchController.addListener(_handleSearchChanged);
+  }
+
+  @override
+  void onClose() {
+    searchController.removeListener(_handleSearchChanged);
+    searchController.dispose();
+    super.onClose();
+  }
+
   // Toggle FAQ expansion
   void toggleFaq(int index) {
     if (expandedFaqIndex.value == index) {
@@ -73,8 +87,13 @@ class HelpSupportController extends GetxController {
     }
   }
 
+  void _handleSearchChanged() {
+    updateSearchQuery(searchController.text);
+  }
+
   // Update search query
   void updateSearchQuery(String query) {
+    if (searchQuery.value == query) return;
     searchQuery.value = query;
   }
 

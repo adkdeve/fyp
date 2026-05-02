@@ -12,7 +12,7 @@ class HelpSupportView extends GetView<HelpSupportController> {
       value: SystemUiOverlayStyle.dark.copyWith(
         statusBarIconBrightness: Brightness.dark,
         statusBarBrightness: Brightness.light,
-        statusBarColor: Colors.white,
+        statusBarColor: Colors.transparent,
       ),
       child: Scaffold(
         backgroundColor: const Color(0xFFF9FAFB),
@@ -71,7 +71,7 @@ class HelpSupportView extends GetView<HelpSupportController> {
 
   Widget _buildSearchBar() {
     return TextField(
-      onChanged: controller.updateSearchQuery,
+      controller: controller.searchController,
       decoration: InputDecoration(
         hintText: 'Search help articles...',
         prefixIcon: const Icon(Icons.search, size: 20, color: Color(0xFF9CA3AF)),

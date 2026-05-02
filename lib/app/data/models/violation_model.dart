@@ -68,6 +68,12 @@ ViolationStatus _statusFromBackend(String? raw) {
   }
 }
 
+DateTime _parseDetectedAt(String? raw) {
+  final parsed = DateTime.tryParse(raw ?? '');
+  if (parsed == null) return DateTime.now();
+  return parsed.isUtc ? parsed.toLocal() : parsed;
+}
+
 // ── Model ────────────────────────────────────────────────────────────────────
 
 class ViolationModel {
@@ -114,7 +120,7 @@ class ViolationModel {
       description: (json['notes'] as String?)?.isNotEmpty == true
           ? json['notes']
           : _typeDescription(rawType),
-      time: DateTime.tryParse(json['detected_at'] as String? ?? '') ?? DateTime.now(),
+      time: _parseDetectedAt(json['detected_at'] as String?),
       status: _statusFromBackend(json['status'] as String?),
       severity: _severityFromBackend(json['severity'] as String?),
       imageUrl: snapshotPath != null

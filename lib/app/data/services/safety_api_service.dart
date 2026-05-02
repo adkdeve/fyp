@@ -3,6 +3,8 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 import 'package:get/get.dart';
+import 'package:http_parser/http_parser.dart';
+import 'package:mime/mime.dart';
 import '../../../app/core/config/app_config.dart';
 import '../../../app/core/values/apis_url.dart';
 import 'auth_service.dart';
@@ -138,12 +140,26 @@ class SafetyApiService {
     String fieldName,
     File file,
   ) async {
+    final filename = file.path.split(RegExp(r'[\\/]')).last;
+    final mimeType = lookupMimeType(file.path) ?? 'image/jpeg';
+    final mimeParts = mimeType.split('/');
+    final contentType = mimeParts.length == 2
+        ? MediaType(mimeParts[0], mimeParts[1])
+        : MediaType('image', 'jpeg');
+
     Future<http.StreamedResponse> send() async {
       final req = http.MultipartRequest('POST', Uri.parse(url));
       final token = await _auth.getToken();
       if (token != null) req.headers['Authorization'] = 'Bearer $token';
       req.headers['Accept'] = 'application/json';
-      req.files.add(await http.MultipartFile.fromPath(fieldName, file.path));
+      req.files.add(
+        await http.MultipartFile.fromPath(
+          fieldName,
+          file.path,
+          filename: filename,
+          contentType: contentType,
+        ),
+      );
       return req.send().timeout(AppConfig.apiTimeout);
     }
 
@@ -215,7 +231,7 @@ class SafetyApiService {
     String? status,
     String? q,
   }) async {
-    return await _get(
+    final raw = await _get(
       ApisUrl.cameras,
       query: {
         if (enabledOnly) 'enabled_only': 'true',
@@ -224,6 +240,15 @@ class SafetyApiService {
         if (q != null && q.isNotEmpty) 'q': q,
       },
     );
+
+    if (raw is List) return raw;
+    if (raw is Map<String, dynamic>) {
+      for (final key in ['items', 'results', 'data', 'cameras']) {
+        final value = raw[key];
+        if (value is List) return value;
+      }
+    }
+    return <dynamic>[];
   }
 
   Future<Map<String, dynamic>> createCamera(Map<String, dynamic> data) async {
@@ -245,12 +270,14 @@ class SafetyApiService {
     String? severity,
     String? type,
     int? cameraId,
+    bool enabledOnly = false,
     int limit = 50,
     int offset = 0,
   }) async {
     final query = <String, String>{
       'limit': limit.toString(),
       'offset': offset.toString(),
+      if (enabledOnly) 'enabled_only': 'true',
       if (q != null && q.isNotEmpty) 'q': q,
       if (status != null) 'status': status,
       if (severity != null) 'severity': severity,
@@ -275,6 +302,7 @@ class SafetyApiService {
 
   Future<List<dynamic>> getAlerts({
     bool unreadOnly = false,
+    bool enabledOnly = false,
     String? q,
     String? severity,
     int limit = 50,
@@ -284,6 +312,7 @@ class SafetyApiService {
       query: {
         'limit': limit.toString(),
         if (unreadOnly) 'unread_only': 'true',
+        if (enabledOnly) 'enabled_only': 'true',
         if (q != null && q.isNotEmpty) 'q': q,
         if (severity != null && severity.isNotEmpty) 'severity': severity,
       },

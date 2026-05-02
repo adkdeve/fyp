@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../../../../core/config/app_config.dart';
 import '../../../../data/services/auth_service.dart';
 import '../../../../data/services/safety_api_service.dart';
 import '../../../../routes/app_pages.dart';
@@ -14,10 +15,16 @@ class ProfileController extends GetxController {
 
   final isEditing = false.obs;
   final isLoading = false.obs;
+  final avatarRefreshKey = 0.obs;
 
   final nameCtrl = TextEditingController();
   final emailCtrl = TextEditingController();
   final phoneCtrl = TextEditingController();
+  final roleCtrl = TextEditingController();
+  final companyCtrl = TextEditingController();
+  final locationCtrl = TextEditingController();
+  final changePasswordCurrentCtrl = TextEditingController();
+  final changePasswordNewCtrl = TextEditingController();
 
   final formData = <String, String>{
     'name': '',
@@ -74,18 +81,24 @@ class ProfileController extends GetxController {
   void _applyUser(Map<String, dynamic> user) {
     final name = (user['full_name'] ?? user['name'])?.toString() ?? '';
     final email = user['email']?.toString() ?? '';
+    final role = user['role']?.toString() ?? 'supervisor';
     final phone = (user['phone'] ?? user['phone_number'])?.toString() ?? '';
+    final company = user['company']?.toString() ?? '';
+    final location = user['location']?.toString() ?? '';
     nameCtrl.text = name;
     emailCtrl.text = email;
     phoneCtrl.text = phone;
+    roleCtrl.text = role;
+    companyCtrl.text = company;
+    locationCtrl.text = location;
     formData.assignAll({
       ...formData,
       'name': name,
       'email': email,
-      'role': user['role']?.toString() ?? 'supervisor',
+      'role': role,
       'phone': phone,
-      'company': user['company']?.toString() ?? '',
-      'location': user['location']?.toString() ?? '',
+      'company': company,
+      'location': location,
       'avatar_url': (user['avatar_url'] ?? user['image'])?.toString() ?? '',
     });
   }
@@ -96,10 +109,10 @@ class ProfileController extends GetxController {
     isLoading.value = true;
     try {
       final updated = await _api.updateMe({
-        'full_name': formData['name']?.trim() ?? nameCtrl.text.trim(),
-        'phone': formData['phone']?.trim() ?? phoneCtrl.text.trim(),
-        'company': formData['company']?.trim(),
-        'location': formData['location']?.trim(),
+        'full_name': nameCtrl.text.trim(),
+        'phone': phoneCtrl.text.trim(),
+        'company': companyCtrl.text.trim(),
+        'location': locationCtrl.text.trim(),
       });
       _applyUser(updated);
       await _auth.saveUserData(updated);
@@ -117,11 +130,17 @@ class ProfileController extends GetxController {
   }
 
   Future<void> changePhoto() async {
-    final picked = await ImagePicker().pickImage(source: ImageSource.gallery);
+    final picked = await ImagePicker().pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 85,
+      maxWidth: 1600,
+      maxHeight: 1600,
+    );
     if (picked == null) return;
     try {
       final updated = await _api.uploadAvatar(File(picked.path));
       _applyUser(updated);
+      avatarRefreshKey.value++;
       await _auth.saveUserData(updated);
       Get.snackbar(
         'Success',
@@ -134,8 +153,8 @@ class ProfileController extends GetxController {
   }
 
   void showChangePasswordDialog() {
-    final currentCtrl = TextEditingController();
-    final newCtrl = TextEditingController();
+    changePasswordCurrentCtrl.clear();
+    changePasswordNewCtrl.clear();
     Get.dialog(
       AlertDialog(
         title: const Text('Change Password'),
@@ -143,29 +162,41 @@ class ProfileController extends GetxController {
           mainAxisSize: MainAxisSize.min,
           children: [
             TextField(
-              controller: currentCtrl,
+              controller: changePasswordCurrentCtrl,
               obscureText: true,
               decoration: const InputDecoration(labelText: 'Current password'),
             ),
             TextField(
-              controller: newCtrl,
+              controller: changePasswordNewCtrl,
               obscureText: true,
               decoration: const InputDecoration(labelText: 'New password'),
             ),
           ],
         ),
         actions: [
-          TextButton(onPressed: Get.back, child: const Text('Cancel')),
+          TextButton(
+            onPressed: () {
+              FocusManager.instance.primaryFocus?.unfocus();
+              Get.back();
+            },
+            child: const Text('Cancel'),
+          ),
           TextButton(
             onPressed: () async {
+              final currentPassword = changePasswordCurrentCtrl.text;
+              final newPassword = changePasswordNewCtrl.text;
+              FocusManager.instance.primaryFocus?.unfocus();
               Get.back();
-              await changePassword(currentCtrl.text, newCtrl.text);
+              await changePassword(currentPassword, newPassword);
             },
             child: const Text('Save'),
           ),
         ],
       ),
-    );
+    ).whenComplete(() {
+      changePasswordCurrentCtrl.clear();
+      changePasswordNewCtrl.clear();
+    });
   }
 
   Future<void> changePassword(
@@ -190,10 +221,18 @@ class ProfileController extends GetxController {
         title: const Text('Delete Account'),
         content: const Text('This will disable your account and sign you out.'),
         actions: [
-          TextButton(onPressed: Get.back, child: const Text('Cancel')),
+          TextButton(
+            onPressed: () {
+              FocusManager.instance.primaryFocus?.unfocus();
+              Get.back();
+            },
+            child: const Text('Cancel'),
+          ),
           TextButton(
             onPressed: () async {
+              FocusManager.instance.primaryFocus?.unfocus();
               Get.back();
+              await Future<void>.delayed(const Duration(milliseconds: 50));
               await deleteAccount();
             },
             child: const Text('Delete', style: TextStyle(color: Colors.red)),
@@ -218,6 +257,35 @@ class ProfileController extends GetxController {
     formData.refresh();
   }
 
+  TextEditingController controllerForField(String field) {
+    switch (field) {
+      case 'name':
+        return nameCtrl;
+      case 'email':
+        return emailCtrl;
+      case 'phone':
+        return phoneCtrl;
+      case 'role':
+        return roleCtrl;
+      case 'company':
+        return companyCtrl;
+      case 'location':
+        return locationCtrl;
+      default:
+        throw ArgumentError('Unknown profile field: $field');
+    }
+  }
+
+  bool isFieldEditable(String field) {
+    switch (field) {
+      case 'email':
+      case 'role':
+        return false;
+      default:
+        return true;
+    }
+  }
+
   String getInitials() {
     final name = formData['name'] ?? '';
     final parts = name.trim().split(' ').where((p) => p.isNotEmpty).toList();
@@ -226,11 +294,33 @@ class ProfileController extends GetxController {
     return 'U';
   }
 
+  String? get resolvedAvatarUrl {
+    final raw = formData['avatar_url']?.trim() ?? '';
+    if (raw.isEmpty) return null;
+
+    String resolved;
+    if (raw.startsWith('http://') || raw.startsWith('https://')) {
+      resolved = raw;
+    } else if (raw.startsWith('/')) {
+      resolved = '${AppConfig.imageBaseUrl}$raw';
+    } else {
+      resolved = '${AppConfig.imageBaseUrl}/$raw';
+    }
+
+    final separator = resolved.contains('?') ? '&' : '?';
+    return '$resolved${separator}v=${avatarRefreshKey.value}';
+  }
+
   @override
   void onClose() {
     nameCtrl.dispose();
     emailCtrl.dispose();
     phoneCtrl.dispose();
+    roleCtrl.dispose();
+    companyCtrl.dispose();
+    locationCtrl.dispose();
+    changePasswordCurrentCtrl.dispose();
+    changePasswordNewCtrl.dispose();
     super.onClose();
   }
 }

@@ -8,17 +8,15 @@ import '../../camera_feed/views/camera_feed_view.dart';
 
 class LiveFeedCard extends StatelessWidget {
   final CameraModel camera;
-  final String zone;
   final String status; // safe, warning, critical
-  final int workers;
+  final int openViolations;
   final String? violation;
 
   const LiveFeedCard({
     super.key,
     required this.camera,
-    required this.zone,
     required this.status,
-    required this.workers,
+    required this.openViolations,
     this.violation,
   });
 
@@ -31,7 +29,7 @@ class LiveFeedCard extends StatelessWidget {
         "border": Colors.green.shade200,
         "badgeBg": Colors.green.shade100,
         "badgeText": Colors.green.shade700,
-        "text": "Safe",
+        "text": "Clear",
         "icon": LucideIcons.circleCheck,
       },
       "warning": {
@@ -56,7 +54,7 @@ class LiveFeedCard extends StatelessWidget {
 
     return GestureDetector(
       onTap: () => Get.to(
-            () => const CameraFeedView(),
+        () => const CameraFeedView(),
         arguments: camera,
         binding: CameraFeedBinding(),
       ),
@@ -79,7 +77,7 @@ class LiveFeedCard extends StatelessWidget {
                   children: [
                     Icon(LucideIcons.video, size: 18),
                     const SizedBox(width: 5),
-                    Text(zone),
+                    Text(camera.zone),
                   ],
                 ),
                 Container(
@@ -111,19 +109,38 @@ class LiveFeedCard extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text("${camera.id}", style: TextStyle(fontSize: 12, color: Colors.grey.shade700)),
-                Row(
-                  children: [
-                    const Icon(LucideIcons.users, size: 14),
-                    const SizedBox(width: 2),
-                    Text("$workers workers", style: TextStyle(fontSize: 12)),
-                  ],
+                Text(
+                  "Camera #${camera.id}",
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+                ),
+                Text(
+                  "${camera.fpsTarget} FPS target",
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  camera.enabled ? 'Monitoring enabled' : 'Monitoring disabled',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: camera.enabled
+                        ? Colors.green.shade700
+                        : Colors.grey.shade700,
+                  ),
+                ),
+                Text(
+                  '$openViolations open violation${openViolations == 1 ? '' : 's'}',
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
                 ),
               ],
             ),
             if (violation != null)
               Padding(
-                padding: const EdgeInsets.only(top: 4),
+                padding: const EdgeInsets.only(top: 8),
                 child: Text(
                   violation!,
                   style: const TextStyle(color: Colors.red, fontSize: 12),
@@ -131,70 +148,34 @@ class LiveFeedCard extends StatelessWidget {
               ),
 
             const SizedBox(height: 8),
-            // Video Feed Placeholder
-            Stack(
-              children: [
-                Container(
-                  height: 120,
-                  decoration: BoxDecoration(
-                    color: Colors.black,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: GridView.builder(
-                    padding: EdgeInsets.zero,
-                    physics: const NeverScrollableScrollPhysics(),
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 8,
-                      mainAxisSpacing: 0,
-                      crossAxisSpacing: 0,
-                    ),
-                    itemCount: 48,
-                    itemBuilder: (context, index) => Container(
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.white.withOpacity(0.1)),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.7),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      camera.enabled
+                          ? 'Tap to open the live feed for this camera.'
+                          : 'Enable this camera in Camera Management to monitor it.',
+                      style: TextStyle(
+                        color: Colors.grey.shade800,
+                        fontSize: 12,
                       ),
                     ),
                   ),
-                ),
-                // LIVE Badge
-                Positioned(
-                  top: 4,
-                  left: 4,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: Colors.red,
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 6,
-                          height: 6,
-                          decoration: const BoxDecoration(
-                            color: Colors.white,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                        const SizedBox(width: 4),
-                        const Text(
-                          "LIVE",
-                          style: TextStyle(color: Colors.white, fontSize: 10),
-                        ),
-                      ],
-                    ),
+                  const SizedBox(width: 8),
+                  Icon(
+                    LucideIcons.arrowRight,
+                    size: 16,
+                    color: Colors.grey.shade700,
                   ),
-                ),
-                // Timestamp
-                Positioned(
-                  bottom: 4,
-                  left: 4,
-                  child: Text(
-                    "${TimeOfDay.fromDateTime(DateTime.now()).format(context)}",
-                    style: const TextStyle(color: Colors.white70, fontSize: 10),
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
           ],
         ),

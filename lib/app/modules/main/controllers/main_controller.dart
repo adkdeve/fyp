@@ -26,6 +26,7 @@ class MainController extends GetxController {
   var notificationSettings = NotificationSettings(
     criticalAlerts: true,
     mediumAlerts: true,
+    lowAlerts: true,
   ).obs;
   var autoDetection = true.obs;
 
@@ -50,6 +51,32 @@ class MainController extends GetxController {
 
   int get activeViolationsCount =>
       violations.where((v) => v.status == ViolationStatus.active).length;
+
+  void upsertViolation(ViolationModel violation) {
+    final index = violations.indexWhere((v) => v.id == violation.id);
+    if (index == -1) {
+      violations.insert(0, violation);
+    } else {
+      violations[index] = violation;
+      violations.refresh();
+    }
+    if (selectedViolation.value?.id == violation.id) {
+      selectedViolation.value = violation;
+    }
+  }
+
+  void upsertCamera(CameraModel camera) {
+    final index = cameras.indexWhere((c) => c.id == camera.id);
+    if (index == -1) {
+      cameras.insert(0, camera);
+    } else {
+      cameras[index] = camera;
+      cameras.refresh();
+    }
+    if (selectedCamera.value?.id == camera.id) {
+      selectedCamera.value = camera;
+    }
+  }
 
   // Violation helpers
   void acknowledgeViolation(String id, String by) {

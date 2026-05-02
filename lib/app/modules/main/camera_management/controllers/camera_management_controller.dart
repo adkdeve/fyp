@@ -5,20 +5,30 @@ import '../../../../data/models/camera_model.dart';
 import '../../../../data/services/safety_api_service.dart';
 import '../../camera_feed/bindings/camera_feed_binding.dart';
 import '../../camera_feed/views/camera_feed_view.dart';
+import '../../controllers/main_controller.dart';
 
 class CameraManagementController extends GetxController {
   final SafetyApiService _api = SafetyApiService.to;
+  final MainController _main = Get.find<MainController>();
 
   final cameras = <CameraModel>[].obs;
   final isLoading = false.obs;
   final searchTerm = ''.obs;
   final statusFilter = 'all'.obs;
-  final recordingStates = <int, bool>{}.obs;
+  final searchController = TextEditingController();
 
   @override
   void onInit() {
     super.onInit();
+    searchController.addListener(_handleSearchChanged);
     loadCameras();
+  }
+
+  @override
+  void onClose() {
+    searchController.removeListener(_handleSearchChanged);
+    searchController.dispose();
+    super.onClose();
   }
 
   Future<void> loadCameras() async {
@@ -26,6 +36,7 @@ class CameraManagementController extends GetxController {
     try {
       final raw = await _api.getCameras();
       cameras.assignAll(raw.map((e) => CameraModel.fromJson(e)).toList());
+      _main.setCameras(cameras);
     } catch (e) {
       Get.snackbar(
         'Error',
@@ -51,106 +62,30 @@ class CameraManagementController extends GetxController {
     }).toList();
   }
 
-  void setSearchTerm(String value) => searchTerm.value = value;
-  void setStatusFilter(String value) => statusFilter.value = value;
-
-  void toggleRecording(int cameraId) {
-    CameraModel? camera;
-    for (final item in cameras) {
-      if (item.id == cameraId) {
-        camera = item;
-        break;
-      }
-    }
-    if (camera != null) handleViewFeed(camera);
+  void _handleSearchChanged() {
+    setSearchTerm(searchController.text);
   }
 
-  bool isRecording(int cameraId) => recordingStates[cameraId] ?? false;
+  void setSearchTerm(String value) {
+    if (searchTerm.value == value) return;
+    searchTerm.value = value;
+  }
+  void setStatusFilter(String value) => statusFilter.value = value;
 
   void handleViewFeed(CameraModel camera) {
+    if (!camera.enabled) {
+      Get.snackbar(
+        'Camera Disabled',
+        'Enable this camera to start monitoring its feed.',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+      return;
+    }
     Get.to(
       () => const CameraFeedView(),
       arguments: camera,
       binding: CameraFeedBinding(),
     );
-  }
-
-  void handleAddCamera() {
-    final nameCtrl = TextEditingController();
-    final rtspCtrl = TextEditingController();
-    final locationCtrl = TextEditingController();
-
-    Get.dialog(
-      AlertDialog(
-        title: const Text('Add New Camera'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: nameCtrl,
-              decoration: const InputDecoration(labelText: 'Name'),
-            ),
-            TextField(
-              controller: rtspCtrl,
-              decoration: const InputDecoration(labelText: 'RTSP URL'),
-            ),
-            TextField(
-              controller: locationCtrl,
-              decoration: const InputDecoration(
-                labelText: 'Location (optional)',
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(onPressed: () => Get.back(), child: const Text('Cancel')),
-          TextButton(
-            onPressed: () async {
-              Get.back();
-              await _createCamera(
-                name: nameCtrl.text.trim(),
-                rtspUrl: rtspCtrl.text.trim(),
-                location: locationCtrl.text.trim().isEmpty
-                    ? null
-                    : locationCtrl.text.trim(),
-              );
-            },
-            child: const Text('Add'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _createCamera({
-    required String name,
-    required String rtspUrl,
-    String? location,
-  }) async {
-    if (name.isEmpty || rtspUrl.isEmpty) {
-      Get.snackbar(
-        'Validation',
-        'Name and RTSP URL are required',
-        snackPosition: SnackPosition.BOTTOM,
-      );
-      return;
-    }
-    try {
-      await _api.createCamera({
-        'name': name,
-        'rtsp_url': rtspUrl,
-        if (location != null) 'location': location,
-        'enabled': true,
-      });
-      await loadCameras();
-      Get.snackbar(
-        'Success',
-        'Camera "$name" added',
-        snackPosition: SnackPosition.BOTTOM,
-      );
-    } catch (e) {
-      Get.snackbar('Error', e.toString(), snackPosition: SnackPosition.BOTTOM);
-    }
   }
 
   Future<void> toggleStatus(int cameraId) async {
@@ -161,8 +96,10 @@ class CameraManagementController extends GetxController {
       final raw = await _api.updateCamera(cameraId, {
         'enabled': !current.enabled,
       });
-      cameras[i] = CameraModel.fromJson(raw);
+      final updated = CameraModel.fromJson(raw);
+      cameras[i] = updated;
       cameras.refresh();
+      _main.upsertCamera(updated);
     } catch (e) {
       Get.snackbar('Error', e.toString(), snackPosition: SnackPosition.BOTTOM);
     }
@@ -170,7 +107,8 @@ class CameraManagementController extends GetxController {
 
   int get onlineCount =>
       cameras.where((c) => c.status.toLowerCase() == 'online').length;
+  int get enabledCount => cameras.where((c) => c.enabled).length;
+  int get disabledCount => cameras.where((c) => !c.enabled).length;
   int get offlineCount =>
       cameras.where((c) => c.status.toLowerCase() != 'online').length;
-  int get recordingCount => recordingStates.values.where((v) => v).length;
 }

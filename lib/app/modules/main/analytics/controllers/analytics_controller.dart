@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../data/models/analytics_model.dart';
 import '../../../../data/services/safety_api_service.dart';
-import '../../../../core/config/app_config.dart';
 
 class AnalyticsController extends GetxController {
   final SafetyApiService _api = SafetyApiService.to;
@@ -52,72 +51,8 @@ class AnalyticsController extends GetxController {
         fetchByCamera(days: days),
       ]);
     } finally {
-      if (AppConfig.enableMockFallback &&
-          totalViolations.value == 0 &&
-          weeklyData.isEmpty) {
-        _loadMockAnalytics();
-      }
       isLoading.value = false;
     }
-  }
-
-  void _loadMockAnalytics() {
-    totalViolations.value = 12;
-    activeViolations.value = 3;
-    complianceRate.value = 89;
-    avgResponseTime.value = 2.4;
-    activeZones.value = 4;
-    weeklyData.assignAll([
-      AnalyticsData(period: 'Mon', violations: 2),
-      AnalyticsData(period: 'Tue', violations: 1),
-      AnalyticsData(period: 'Wed', violations: 4),
-      AnalyticsData(period: 'Thu', violations: 0),
-      AnalyticsData(period: 'Fri', violations: 3),
-      AnalyticsData(period: 'Sat', violations: 1),
-      AnalyticsData(period: 'Sun', violations: 1),
-    ]);
-    violationTypeData.assignAll([
-      ViolationTypeData(name: 'PPE', value: 7, color: _typeColors['PPE']!),
-      ViolationTypeData(
-        name: 'Unauthorized',
-        value: 2,
-        color: _typeColors['Unauthorized']!,
-      ),
-      ViolationTypeData(
-        name: 'Hazardous',
-        value: 2,
-        color: _typeColors['Hazardous']!,
-      ),
-      ViolationTypeData(
-        name: 'Material',
-        value: 1,
-        color: _typeColors['Material']!,
-      ),
-    ]);
-    complianceTrend.assignAll(
-      weeklyData
-          .map(
-            (e) => ComplianceTrend(
-              week: e.period,
-              compliance: (100 - e.violations * 2).clamp(0, 100).toInt(),
-            ),
-          )
-          .toList(),
-    );
-    zonePerformance.assignAll([
-      ZonePerformance(
-        zone: 'Gate Camera',
-        compliance: 92,
-        violations: 2,
-        id: '1',
-      ),
-      ZonePerformance(
-        zone: 'Crane Zone',
-        compliance: 86,
-        violations: 4,
-        id: '2',
-      ),
-    ]);
   }
 
   Future<void> fetchSummary({int days = 7}) async {
@@ -125,9 +60,7 @@ class AnalyticsController extends GetxController {
       final s = await _api.getSummary(days: days);
       totalViolations.value = (s['total_violations'] as int?) ?? 0;
       activeViolations.value = (s['open_violations'] as int?) ?? 0;
-      final safe = (s['safe_workers'] as int?) ?? 25;
-      final total = (s['total_workers'] as int?) ?? 28;
-      complianceRate.value = total == 0 ? 100 : ((safe / total) * 100).round();
+      complianceRate.value = (s['compliance_rate'] as int?) ?? 100;
       avgResponseTime.value =
           (s['avg_response_time'] as num?)?.toDouble() ?? 0.0;
       activeZones.value = (s['active_zones'] as int?) ?? 0;
@@ -154,13 +87,9 @@ class AnalyticsController extends GetxController {
         monthlyData.assignAll(parsed);
       }
       complianceTrend.assignAll(
-        parsed.map((e) {
-          final compliance = (100 - (e.violations * 2)).clamp(0, 100);
-          return ComplianceTrend(
-            week: e.period,
-            compliance: compliance.toInt(),
-          );
-        }).toList(),
+        parsed
+            .map((e) => ComplianceTrend(week: e.period, compliance: e.violations))
+            .toList(),
       );
     } catch (_) {}
   }
@@ -184,16 +113,21 @@ class AnalyticsController extends GetxController {
   Future<void> fetchByCamera({int days = 7}) async {
     try {
       final raw = await _api.getByCamera(days: days);
+      var totalCount = 0;
+      for (final item in raw) {
+        final m = item as Map<String, dynamic>;
+        totalCount += (m['count'] as int?) ?? 0;
+      }
       final parsed = raw.asMap().entries.map((entry) {
         final m = entry.value as Map<String, dynamic>;
         final count = (m['count'] as int?) ?? 0;
         final name =
             (m['camera_name'] ?? m['camera']) as String? ??
             'Camera ${entry.key + 1}';
-        final compliance = count == 0 ? 100 : (100 - (count * 2)).clamp(0, 100);
+        final share = totalCount == 0 ? 0 : ((count / totalCount) * 100).round();
         return ZonePerformance(
           zone: name,
-          compliance: compliance,
+          compliance: share,
           violations: count,
           id: (entry.key + 1).toString(),
         );
@@ -275,7 +209,7 @@ class AnalyticsController extends GetxController {
             'Avg response time: ${avgResponseTime.value.toStringAsFixed(1)}s';
         break;
       default:
-        message = 'Monitoring ${zonePerformance.length} camera zones';
+        message = 'Monitoring ${activeZones.value} enabled camera zones';
     }
     Get.dialog(
       AlertDialog(
@@ -301,7 +235,7 @@ class AnalyticsController extends GetxController {
       AlertDialog(
         title: Text(zone.zone),
         content: Text(
-          'Compliance: ${zone.compliance}%\nViolations: ${zone.violations}',
+          'Share of violations: ${zone.compliance}%\nViolations: ${zone.violations}',
         ),
         actions: [TextButton(onPressed: Get.back, child: const Text('OK'))],
       ),

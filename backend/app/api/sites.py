@@ -5,7 +5,7 @@ from ..core.db import get_db
 from ..models.site import Site
 from ..models.user import User
 from ..schemas.camera import SiteCreate, SiteOut
-from .deps import require_admin, get_current_user
+from .deps import require_admin, get_current_user, is_admin
 
 router = APIRouter(prefix="/sites", tags=["Sites"])
 
@@ -13,9 +13,14 @@ router = APIRouter(prefix="/sites", tags=["Sites"])
 @router.get("", response_model=list[SiteOut])
 def list_sites(
     db: Session = Depends(get_db),
-    _: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user),
 ):
-    return db.query(Site).order_by(Site.name).all()
+    query = db.query(Site)
+    if not is_admin(current_user):
+        if current_user.site_id is None:
+            return []
+        query = query.filter(Site.id == current_user.site_id)
+    return query.order_by(Site.name).all()
 
 
 @router.post("", response_model=SiteOut, status_code=201)

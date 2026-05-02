@@ -7,6 +7,7 @@ import '../../controllers/main_controller.dart';
 
 class DashboardController extends GetxController {
   final SafetyApiService _api = SafetyApiService.to;
+  final MainController _main = Get.find<MainController>();
 
   // ── Observables ────────────────────────────────────────────────────────────
   final cameras = <CameraModel>[].obs;
@@ -17,16 +18,23 @@ class DashboardController extends GetxController {
   // Summary stats from backend
   final totalViolationsToday = 0.obs;
   final resolvedToday = 0.obs;
-  final totalWorkersValue = 28.obs;
-  final safeWorkersValue = 28.obs;
+  final activeZonesValue = 0.obs;
+  final compliantCamerasValue = 0.obs;
+  final complianceRateValue = 100.obs;
   final isLoading = false.obs;
 
   Timer? _clockTimer;
+  Worker? _violationsWorker;
 
   // ── Lifecycle ──────────────────────────────────────────────────────────────
   @override
   void onInit() {
     super.onInit();
+    violations.assignAll(_main.violations);
+    selectedCamera.value = _main.selectedCamera.value;
+    _violationsWorker = ever<List<ViolationModel>>(_main.violations, (items) {
+      violations.assignAll(items);
+    });
     _clockTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       currentTime.value = DateTime.now();
     });
@@ -36,6 +44,7 @@ class DashboardController extends GetxController {
   @override
   void onClose() {
     _clockTimer?.cancel();
+    _violationsWorker?.dispose();
     super.onClose();
   }
 
@@ -72,7 +81,11 @@ class DashboardController extends GetxController {
 
   Future<void> fetchRecentViolations() async {
     try {
-      final raw = await _api.getViolations(status: 'open', limit: 20);
+      final raw = await _api.getViolations(
+        status: 'open',
+        enabledOnly: true,
+        limit: 200,
+      );
       violations.assignAll(raw.map((e) => ViolationModel.fromJson(e)).toList());
       if (Get.isRegistered<MainController>()) {
         Get.find<MainController>().setViolations(violations);
@@ -87,8 +100,9 @@ class DashboardController extends GetxController {
       final s = await _api.getSummary(days: 1);
       totalViolationsToday.value = (s['total_violations'] as int?) ?? 0;
       resolvedToday.value = (s['resolved'] as int?) ?? 0;
-      totalWorkersValue.value = (s['total_workers'] as int?) ?? 28;
-      safeWorkersValue.value = (s['safe_workers'] as int?) ?? 28;
+      activeZonesValue.value = (s['active_zones'] as int?) ?? 0;
+      compliantCamerasValue.value = (s['compliant_cameras'] as int?) ?? 0;
+      complianceRateValue.value = (s['compliance_rate'] as int?) ?? 100;
     } catch (_) {}
   }
 
@@ -98,14 +112,15 @@ class DashboardController extends GetxController {
   }
 
   // ── Computed stats ─────────────────────────────────────────────────────────
-  int get totalWorkers => totalWorkersValue.value;
+  int get activeViolationsCount =>
+      violations.where((v) => v.status == ViolationStatus.active).length;
 
-  int get activeViolationsCount => violations.length;
+  int get activeZones => activeZonesValue.value;
 
-  int get safeWorkers => safeWorkersValue.value.clamp(0, totalWorkers);
+  int get compliantCameras =>
+      compliantCamerasValue.value.clamp(0, activeZones).toInt();
 
-  int get complianceRate =>
-      totalWorkers == 0 ? 100 : ((safeWorkers / totalWorkers) * 100).round();
+  int get complianceRate => complianceRateValue.value.clamp(0, 100).toInt();
 
   ViolationModel? get mostRecentViolation {
     if (violations.isEmpty) return null;
@@ -118,4 +133,6 @@ class DashboardController extends GetxController {
 
   int get onlineCameraCount =>
       cameras.where((c) => c.status.toLowerCase() == 'online').length;
+
+  int get enabledCameraCount => cameras.where((c) => c.enabled).length;
 }

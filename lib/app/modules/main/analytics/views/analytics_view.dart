@@ -14,7 +14,7 @@ class AnalyticsView extends GetView<AnalyticsController> {
       value: SystemUiOverlayStyle.dark.copyWith(
         statusBarIconBrightness: Brightness.dark,
         statusBarBrightness: Brightness.light,
-        statusBarColor: Colors.white,
+        statusBarColor: Colors.transparent,
       ),
       child: SafeArea(
         child: Scaffold(
@@ -163,7 +163,7 @@ class AnalyticsView extends GetView<AnalyticsController> {
           _buildMetricCard(
             'Compliance Rate',
             '${controller.complianceRate.value}%',
-            '+5% from last week',
+            'Enabled cameras without open violations',
             Colors.green,
             Icons.trending_up,
             () => controller.showMetricDetails('compliance'),
@@ -171,7 +171,7 @@ class AnalyticsView extends GetView<AnalyticsController> {
           _buildMetricCard(
             'Total Violations',
             '${controller.totalViolations.value}',
-            '-12% from last week',
+            '${controller.activeViolations.value} currently open',
             Colors.red,
             Icons.trending_down,
             () => controller.showMetricDetails('violations'),
@@ -409,7 +409,7 @@ class AnalyticsView extends GetView<AnalyticsController> {
                           value: data.value.toDouble(),
                           color: data.color,
                           radius: 40,
-                          title: '${data.value}%',
+                          title: '${data.value}',
                           titleStyle: const TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
@@ -457,7 +457,7 @@ class AnalyticsView extends GetView<AnalyticsController> {
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          '${data.name} (${data.value}%)',
+                          '${data.name} (${data.value})',
                           style: const TextStyle(fontSize: 12),
                         ),
                       ],
@@ -487,14 +487,14 @@ class AnalyticsView extends GetView<AnalyticsController> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text(
-                'Compliance Trend',
+                'Violation Trend',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
                   color: Colors.black87,
                 ),
               ),
-              const Icon(Icons.trending_up, color: Colors.green, size: 20),
+              const Icon(Icons.timeline, color: Colors.red, size: 20),
             ],
           ),
           const SizedBox(height: 16),
@@ -546,7 +546,7 @@ class AnalyticsView extends GetView<AnalyticsController> {
                           )
                           .toList(),
                       isCurved: true,
-                      color: Colors.green,
+                      color: Colors.red,
                       barWidth: 4,
                       dotData: const FlDotData(show: true),
                     ),
@@ -576,7 +576,7 @@ class AnalyticsView extends GetView<AnalyticsController> {
       child: Column(
         children: [
           const Text(
-            'Zone Performance',
+            'Camera Activity',
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
@@ -638,11 +638,11 @@ class AnalyticsView extends GetView<AnalyticsController> {
                                 width: screenWidth * (zone.compliance / 100),
                                 height: 6,
                                 decoration: BoxDecoration(
-                                  color: zone.compliance >= 90
+                                  color: zone.violations == 0
                                       ? Colors.green
-                                      : zone.compliance >= 80
-                                      ? Colors.yellow[700]!
-                                      : Colors.red,
+                                      : zone.compliance >= 50
+                                      ? Colors.red
+                                      : Colors.orange,
                                   borderRadius: BorderRadius.circular(3),
                                 ),
                               ),
@@ -651,7 +651,9 @@ class AnalyticsView extends GetView<AnalyticsController> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          '${zone.violations} violations this week',
+                          zone.violations == 0
+                              ? 'No violations in selected period'
+                              : '${zone.violations} violations • ${zone.compliance}% of site total',
                           style: const TextStyle(
                             fontSize: 10,
                             color: Colors.grey,

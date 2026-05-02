@@ -32,23 +32,25 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
 Open http://localhost:8000/docs for Swagger UI. `GET /health` should return `{"status":"ok"}`.
 
-## AI dependencies are optional
+Supervisors are intended to be provisioned by an admin and scoped to a site. They can log into the app, enable or disable cameras for their assigned site, and view only the enabled feeds and alerts for that site.
 
-The backend runs with the default `MockDetector` and does not need YOLO or Torch for basic app testing.
+## AI dependencies
 
-Install only the base API stack:
+The backend is now configured to prefer the real YOLO detector by default. If the model file or AI dependencies are missing, the worker falls back to a no-op detector instead of fabricating random safety events.
+
+Install only the base API stack if you want the API without live detections:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-Install the heavier AI stack only when you are ready to run the YOLO detector with a real model:
+Install the heavier AI stack when you are ready to run the YOLO detector with a real model:
 
 ```bash
 pip install -r requirements-ai.txt
 ```
 
-Then set `DETECTOR=yolo` and `MODEL_PATH=./model.pt` in `.env`.
+Then set `MODEL_PATH=./model.pt` in `.env`. `DETECTOR=yolo` is already the default.
 
 ## Run everything with Docker
 
@@ -59,7 +61,7 @@ docker compose up --build
 
 The API is available at http://localhost:8000 and Postgres is available at `localhost:5432`.
 
-If you want the Docker image to include YOLO dependencies too, build with:
+The provided `docker compose` configuration now builds the API image with YOLO dependencies enabled. If you want to build it manually:
 
 ```bash
 docker build --build-arg INSTALL_AI=true -t construction-safety-backend:ai .
@@ -108,4 +110,4 @@ backend/
 
 ## Swapping in the AI model
 
-The inference worker loads detectors from `app/workers/detectors/`. The default setup uses `MockDetector`, which is enough for end-to-end app testing. When `model.pt` arrives, install `requirements-ai.txt`, set `DETECTOR=yolo` and `MODEL_PATH=./model.pt` in `.env`, then restart the backend.
+The inference worker loads detectors from `app/workers/detectors/`. Place `model.pt` in the backend root or point `MODEL_PATH` at your trained model, then restart the backend. If the model cannot be loaded, the backend will log the issue and stop generating detections rather than inventing random ones.

@@ -39,7 +39,7 @@ class CameraUpdate(BaseModel):
 class CameraOut(BaseModel):
     id: int
     name: str
-    rtsp_url: str
+    rtsp_url: str | None
     location: str | None
     enabled: bool
     status: CameraStatus

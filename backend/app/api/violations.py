@@ -11,7 +11,7 @@ from ..models.camera import Camera
 from ..models.violation import Violation, ViolationType, Severity, ViolationStatus
 from ..models.user import User
 from ..schemas.violation import ViolationOut, ViolationCreate, ViolationResolve
-from .deps import get_current_user
+from .deps import get_current_user, is_admin, scope_site_query
 
 router = APIRouter(prefix="/violations", tags=["Violations"])
 
@@ -23,14 +23,17 @@ def list_violations(
     type: ViolationType | None = Query(None),
     severity: Severity | None = Query(None),
     status: ViolationStatus | None = Query(None),
+    enabled_only: bool = Query(False),
     from_date: datetime | None = Query(None),
     to_date: datetime | None = Query(None),
     limit: int = Query(50, le=200),
     offset: int = Query(0),
     db: Session = Depends(get_db),
-    _: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user),
 ):
-    query = db.query(Violation).join(Violation.camera)
+    query = scope_site_query(db.query(Violation).join(Violation.camera), current_user, Camera.site_id)
+    if enabled_only:
+        query = query.filter(Camera.enabled == True)
     if camera_id:
         query = query.filter(Violation.camera_id == camera_id)
     if type:
@@ -62,10 +65,11 @@ def export_violations(
     type: ViolationType | None = Query(None),
     severity: Severity | None = Query(None),
     status: ViolationStatus | None = Query(None),
+    enabled_only: bool = Query(False),
     from_date: datetime | None = Query(None),
     to_date: datetime | None = Query(None),
     db: Session = Depends(get_db),
-    _: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user),
 ):
     rows = list_violations(
         q=q,
@@ -73,12 +77,13 @@ def export_violations(
         type=type,
         severity=severity,
         status=status,
+        enabled_only=enabled_only,
         from_date=from_date,
         to_date=to_date,
         limit=200,
         offset=0,
         db=db,
-        _=_,
+        current_user=current_user,
     )
     output = io.StringIO()
     writer = csv.writer(output)
@@ -119,10 +124,10 @@ def export_violations(
 def get_violation(
     violation_id: int,
     db: Session = Depends(get_db),
-    _: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user),
 ):
     v = db.get(Violation, violation_id)
-    if not v:
+    if not v or not (is_admin(current_user) or (current_user.site_id is not None and v.camera and v.camera.site_id == current_user.site_id)):
         raise HTTPException(status_code=404, detail="Violation not found")
     return v
 
@@ -131,9 +136,12 @@ def get_violation(
 def create_violation(
     body: ViolationCreate,
     db: Session = Depends(get_db),
-    _: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user),
 ):
     """Normally called by the inference worker, but exposed for testing."""
+    camera = db.get(Camera, body.camera_id)
+    if not camera or not (is_admin(current_user) or (current_user.site_id is not None and camera.site_id == current_user.site_id)):
+        raise HTTPException(status_code=404, detail="Camera not found")
     v = Violation(**body.model_dump())
     db.add(v)
     db.commit()
@@ -149,7 +157,14 @@ def resolve_violation(
     current_user: User = Depends(get_current_user),
 ):
     v = db.get(Violation, violation_id)
-    if not v:
+    if not v or not (
+        is_admin(current_user)
+        or (
+            current_user.site_id is not None
+            and v.camera
+            and v.camera.site_id == current_user.site_id
+        )
+    ):
         raise HTTPException(status_code=404, detail="Violation not found")
     v.status = body.status
     if body.notes:

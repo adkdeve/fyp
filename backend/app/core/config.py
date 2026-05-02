@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     cors_origins: str = "http://localhost:3000"
     media_dir: str = "./media"
     model_path: str = "./model.pt"
-    detector: str = "mock"
+    detector: str = "yolo"
     fps_target: int = 5
     confidence_threshold: float = 0.35
 

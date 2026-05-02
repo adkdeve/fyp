@@ -9,6 +9,7 @@ from ..core.config import settings
 from ..core.db import get_db
 from ..core.security import hash_password, verify_password, create_access_token, create_refresh_token, decode_token
 from ..models.user import User, UserRole
+from ..models.site import Site
 from ..schemas.auth import (
     RegisterRequest,
     LoginRequest,
@@ -18,21 +19,38 @@ from ..schemas.auth import (
     UserUpdateRequest,
     PasswordChangeRequest,
 )
-from .deps import get_current_user
+from .deps import get_current_user, require_admin
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
 
 @router.post("/register", response_model=UserOut, status_code=status.HTTP_201_CREATED)
-def register(body: RegisterRequest, db: Session = Depends(get_db)):
+def register(
+    body: RegisterRequest,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin),
+):
     if db.query(User).filter(User.email == body.email).first():
         raise HTTPException(status_code=400, detail="Email already registered")
+    try:
+        role = UserRole(body.role)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid role")
+
+    if role == UserRole.supervisor and body.site_id is None:
+        raise HTTPException(status_code=400, detail="Supervisors must be assigned to a site")
+
+    if body.site_id is not None and db.get(Site, body.site_id) is None:
+        raise HTTPException(status_code=404, detail="Assigned site not found")
+
     user = User(
         email=body.email,
         password_hash=hash_password(body.password),
         full_name=body.full_name,
         phone=body.phone,
-        role=UserRole.supervisor,  # public register always creates supervisor
+        role=role,
+        site_id=body.site_id,
+        is_active=body.is_active,
     )
     db.add(user)
     db.commit()

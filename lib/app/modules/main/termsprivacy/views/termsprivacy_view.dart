@@ -12,7 +12,7 @@ class TermsPrivacyView extends GetView<TermsPrivacyController> {
       value: SystemUiOverlayStyle.dark.copyWith(
         statusBarIconBrightness: Brightness.dark,
         statusBarBrightness: Brightness.light,
-        statusBarColor: Colors.white,
+        statusBarColor: Colors.transparent,
       ),
       child: Scaffold(
         backgroundColor: const Color(0xFFF9FAFB), // bg-gray-50

@@ -37,7 +37,7 @@ class AppPages {
     // ── Auth ──────────────────────────────────────────────────────────────
     GetPage(
       name: _Paths.LOGIN,
-      page: () => const LoginView(),
+      page: () => LoginView(),
       binding: LoginBinding(),
     ),
 

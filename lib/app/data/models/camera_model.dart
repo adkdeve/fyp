@@ -38,15 +38,36 @@ class CameraModel {
   bool get recording => false; // cameras stream continuously; no separate recording toggle
 
   factory CameraModel.fromJson(Map<String, dynamic> json) {
+    final site = json['site'] as Map<String, dynamic>?;
+    final rawId = json['id'];
+    final rawEnabled = json['enabled'];
+    final rawFpsTarget = json['fps_target'];
+    final rawStatus = json['status']?.toString();
+
     return CameraModel(
-      id: json['id'] as int,
-      name: json['name'] as String,
-      rtspUrl: json['rtsp_url'] as String,
-      location: json['location'] as String?,
-      siteName: json['site_name'] as String?,
-      status: (json['status'] as String?) ?? 'offline',
-      enabled: (json['enabled'] as bool?) ?? false,
-      fpsTarget: (json['fps_target'] as int?) ?? 5,
+      id: rawId is int ? rawId : int.tryParse('$rawId') ?? 0,
+      name: json['name']?.toString() ?? site?['name']?.toString() ?? 'Camera',
+      rtspUrl:
+          json['rtsp_url']?.toString() ??
+          json['stream_url']?.toString() ??
+          '',
+      location:
+          json['location']?.toString() ?? site?['address']?.toString(),
+      siteName:
+          json['site_name']?.toString() ?? site?['name']?.toString(),
+      status: rawStatus == null || rawStatus.isEmpty
+          ? 'offline'
+          : rawStatus.split('.').last.toLowerCase(),
+      enabled: rawEnabled is bool
+          ? rawEnabled
+          : rawEnabled is num
+          ? rawEnabled != 0
+          : rawEnabled?.toString().toLowerCase() == 'true',
+      fpsTarget: rawFpsTarget is int
+          ? rawFpsTarget
+          : rawFpsTarget is num
+          ? rawFpsTarget.toInt()
+          : int.tryParse('${rawFpsTarget ?? ''}') ?? 5,
     );
   }
 

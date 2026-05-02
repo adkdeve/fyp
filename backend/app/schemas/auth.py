@@ -6,6 +6,9 @@ class RegisterRequest(BaseModel):
     password: str
     full_name: str
     phone: str | None = None
+    role: str = "supervisor"
+    site_id: int | None = None
+    is_active: bool = True
 
 
 class LoginRequest(BaseModel):
@@ -26,6 +29,8 @@ class UserOut(BaseModel):
     avatar_url: str | None
     company: str | None = None
     location: str | None = None
+    site_id: int | None = None
+    notify_low_alerts: bool = True
     notify_critical_alerts: bool = True
     notify_medium_alerts: bool = True
     is_active: bool
@@ -55,10 +60,12 @@ class PasswordChangeRequest(BaseModel):
 
 
 class NotificationSettingsOut(BaseModel):
+    low_alerts: bool
     critical_alerts: bool
     medium_alerts: bool
 
 
 class NotificationSettingsUpdate(BaseModel):
+    low_alerts: bool | None = None
     critical_alerts: bool | None = None
     medium_alerts: bool | None = None
