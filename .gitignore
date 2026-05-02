@@ -62,3 +62,26 @@ backend/uvicorn.log
 backend/uvicorn.err.log
 backend/media/
 backend/model.pt
+backend/docker-compose.run.*.log
+
+# Environment variables
+.env
+.env.local
+
+# Web/React related
+web/node_modules/
+web/.next/
+web/dist/
+web/build/
+
+# iOS/Android build artifacts
+ios/Pods/
+ios/Flutter/Flutter.framework/
+android/build/
+android/app/debug/
+android/app/profile/
+android/app/release/
+
+# Docker logs
+docker-compose.run.log
+docker-compose.run.err.log
