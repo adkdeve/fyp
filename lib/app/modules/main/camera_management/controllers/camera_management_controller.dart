@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../../data/models/camera_model.dart';
-import '../../../../data/services/safety_api_service.dart';
+import '../../../../data/services/firestore_service.dart';
 import '../../camera_feed/bindings/camera_feed_binding.dart';
 import '../../camera_feed/views/camera_feed_view.dart';
 import '../../controllers/main_controller.dart';
 
 class CameraManagementController extends GetxController {
-  final SafetyApiService _api = SafetyApiService.to;
+  final FirestoreService _firestore = FirestoreService.to;
   final MainController _main = Get.find<MainController>();
 
   final cameras = <CameraModel>[].obs;
@@ -34,7 +34,7 @@ class CameraManagementController extends GetxController {
   Future<void> loadCameras() async {
     isLoading.value = true;
     try {
-      final raw = await _api.getCameras();
+      final raw = await _firestore.getCameras();
       cameras.assignAll(raw.map((e) => CameraModel.fromJson(e)).toList());
       _main.setCameras(cameras);
     } catch (e) {
@@ -93,7 +93,7 @@ class CameraManagementController extends GetxController {
     if (i == -1) return;
     final current = cameras[i];
     try {
-      final raw = await _api.updateCamera(cameraId, {
+      final raw = await _firestore.updateCamera(cameraId, {
         'enabled': !current.enabled,
       });
       final updated = CameraModel.fromJson(raw);

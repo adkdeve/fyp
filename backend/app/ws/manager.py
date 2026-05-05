@@ -9,43 +9,33 @@ class ConnectionManager:
     """Keeps track of all active WebSocket connections and broadcasts alerts."""
 
     def __init__(self):
-        # user_id -> list of open WebSocket connections
-        self._connections: dict[int, list[WebSocket]] = {}
+        self._connections: dict[str, list[WebSocket]] = {}
 
-    async def connect(self, user_id: int, ws: WebSocket):
+    async def connect(self, channel: str, ws: WebSocket):
         await ws.accept()
-        self._connections.setdefault(user_id, []).append(ws)
-        logger.info(f"WS connected: user {user_id} ({self._total()} total)")
+        self._connections.setdefault(channel, []).append(ws)
+        logger.info(f"WS connected: {channel} ({self._total()} total)")
 
-    def disconnect(self, user_id: int, ws: WebSocket):
-        conns = self._connections.get(user_id, [])
+    def disconnect(self, channel: str, ws: WebSocket):
+        conns = self._connections.get(channel, [])
         if ws in conns:
             conns.remove(ws)
         if not conns:
-            self._connections.pop(user_id, None)
-        logger.info(f"WS disconnected: user {user_id} ({self._total()} total)")
+            self._connections.pop(channel, None)
+        logger.info(f"WS disconnected: {channel} ({self._total()} total)")
 
     async def broadcast(self, payload: dict):
-        """Send payload to every connected supervisor."""
+        """Send payload to every connected client."""
         message = json.dumps(payload)
         dead = []
-        for user_id, conns in self._connections.items():
+        for channel, conns in self._connections.items():
             for ws in conns:
                 try:
                     await ws.send_text(message)
                 except Exception:
-                    dead.append((user_id, ws))
-        for user_id, ws in dead:
-            self.disconnect(user_id, ws)
-
-    async def send_to_user(self, user_id: int, payload: dict):
-        """Send payload only to a specific user's connections."""
-        message = json.dumps(payload)
-        for ws in list(self._connections.get(user_id, [])):
-            try:
-                await ws.send_text(message)
-            except Exception:
-                self.disconnect(user_id, ws)
+                    dead.append((channel, ws))
+        for channel, ws in dead:
+            self.disconnect(channel, ws)
 
     def _total(self):
         return sum(len(v) for v in self._connections.values())

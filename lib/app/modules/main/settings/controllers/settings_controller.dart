@@ -13,12 +13,12 @@ import '../../../../core/config/app_config.dart';
 import '../../../../data/models/settings_model.dart';
 import '../../../../data/models/user_model.dart';
 import '../../../../data/services/auth_service.dart';
-import '../../../../data/services/safety_api_service.dart';
+import '../../../../data/services/firestore_service.dart';
 import '../../../../routes/app_pages.dart';
 
 class SettingsController extends GetxController {
   final AuthService _auth = Get.find<AuthService>();
-  final SafetyApiService _api = SafetyApiService.to;
+  final FirestoreService _firestore = FirestoreService.to;
 
   final notificationSettings = NotificationSettings(
     criticalAlerts: true,
@@ -45,7 +45,7 @@ class SettingsController extends GetxController {
 
   Future<void> loadProfile() async {
     try {
-      final user = await _api.getMe();
+      final user = await _firestore.getMe();
       currentUser.value = UserModel.fromJson(user);
       avatarRefreshKey.value++;
       await _auth.saveUserData(user);
@@ -57,14 +57,14 @@ class SettingsController extends GetxController {
 
   Future<void> loadNotificationSettings() async {
     try {
-      final raw = await _api.getNotificationSettings();
+      final raw = await _firestore.getNotificationSettings();
       notificationSettings.value = NotificationSettings.fromJson(raw);
     } catch (_) {}
   }
 
   Future<void> loadCameraCount() async {
     try {
-      final cameras = await _api.getCameras();
+      final cameras = await _firestore.getCameras();
       cameraCount.value = cameras.length;
     } catch (_) {}
   }
@@ -84,7 +84,7 @@ class SettingsController extends GetxController {
     );
     notificationSettings.value = next;
     try {
-      final updated = await _api.updateNotificationSettings(next.toJson());
+      final updated = await _firestore.updateNotificationSettings(next.toJson());
       notificationSettings.value = NotificationSettings.fromJson(updated);
     } catch (e) {
       notificationSettings.value = current;

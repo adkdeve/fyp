@@ -8,7 +8,6 @@ import 'package:http/http.dart' as http;
 import '../../../../core/values/apis_url.dart';
 import '../../../../data/models/camera_model.dart';
 import '../../../../data/services/auth_service.dart';
-import '../../../../data/services/safety_api_service.dart';
 
 class CameraFeedController extends GetxController {
   final AuthService _auth = Get.find<AuthService>();
@@ -96,16 +95,8 @@ class CameraFeedController extends GetxController {
 
       if (res.statusCode == 401) {
         await res.stream.drain<void>();
-        final refreshed = await SafetyApiService.to.tryRefreshToken();
-        if (refreshed) {
-          _token = await _auth.getToken();
-          res = await doRequest();
-        } else {
-          await _auth.logout();
-          Get.offAllNamed('/login');
-          return;
-        }
-      }
+        _token = await _auth.getToken();
+        res = await doRequest();
 
       if (res.statusCode == 200) {
         final bytes = await res.stream.toBytes();
@@ -135,22 +126,11 @@ class CameraFeedController extends GetxController {
   Future<void> takeSnapshot() async {
     final camId = selectedCamera.value?.id;
     if (camId == null) return;
-    try {
-      final snapshot = await SafetyApiService.to.takeSnapshot(camId);
-      Get.dialog(
-        AlertDialog(
-          title: const Text('Snapshot Captured'),
-          content: Text('Saved on server: ${snapshot['snapshot_url'] ?? ''}'),
-          actions: [TextButton(onPressed: Get.back, child: const Text('OK'))],
-        ),
-      );
-    } catch (e) {
-      Get.snackbar(
-        'Snapshot Failed',
-        e.toString(),
-        snackPosition: SnackPosition.BOTTOM,
-      );
-    }
+    Get.snackbar(
+      'Snapshot',
+      'Snapshot functionality pending implementation',
+      snackPosition: SnackPosition.BOTTOM,
+    );
   }
 
   void enterFullscreen() {

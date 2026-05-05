@@ -2,10 +2,10 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../data/models/analytics_model.dart';
-import '../../../../data/services/safety_api_service.dart';
+import '../../../../data/services/firestore_service.dart';
 
 class AnalyticsController extends GetxController {
-  final SafetyApiService _api = SafetyApiService.to;
+  final FirestoreService _firestore = FirestoreService.to;
 
   final RxString timeRange = 'week'.obs;
   final isLoading = false.obs;
@@ -57,7 +57,7 @@ class AnalyticsController extends GetxController {
 
   Future<void> fetchSummary({int days = 7}) async {
     try {
-      final s = await _api.getSummary(days: days);
+      final s = await _firestore.getSummary(days);
       totalViolations.value = (s['total_violations'] as int?) ?? 0;
       activeViolations.value = (s['open_violations'] as int?) ?? 0;
       complianceRate.value = (s['compliance_rate'] as int?) ?? 100;
@@ -73,7 +73,7 @@ class AnalyticsController extends GetxController {
 
   Future<void> fetchTrend({int days = 7}) async {
     try {
-      final raw = await _api.getTrend(days: days);
+      final raw = await _firestore.getTrend(days);
       final parsed = raw.map((e) {
         final m = e as Map<String, dynamic>;
         return AnalyticsData(
@@ -96,7 +96,7 @@ class AnalyticsController extends GetxController {
 
   Future<void> fetchByType({int days = 7}) async {
     try {
-      final raw = await _api.getByType(days: days);
+      final raw = await _firestore.getByType(days);
       final parsed = raw.map((e) {
         final m = e as Map<String, dynamic>;
         final name = _friendlyTypeName(m['type'] as String? ?? 'Other');
@@ -112,7 +112,7 @@ class AnalyticsController extends GetxController {
 
   Future<void> fetchByCamera({int days = 7}) async {
     try {
-      final raw = await _api.getByCamera(days: days);
+      final raw = await _firestore.getByCamera(days);
       var totalCount = 0;
       for (final item in raw) {
         final m = item as Map<String, dynamic>;
@@ -175,7 +175,7 @@ class AnalyticsController extends GetxController {
           : timeRange.value == 'year'
           ? 365
           : 7;
-      final bytes = await _api.exportAnalytics(days: days);
+      final bytes = await _firestore.exportAnalytics(days);
       final file = File(
         '${Directory.systemTemp.path}${Platform.pathSeparator}analytics_${DateTime.now().millisecondsSinceEpoch}.csv',
       );

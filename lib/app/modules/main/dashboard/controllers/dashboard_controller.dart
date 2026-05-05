@@ -2,11 +2,11 @@ import 'dart:async';
 import 'package:get/get.dart';
 import '../../../../data/models/camera_model.dart';
 import '../../../../data/models/violation_model.dart';
-import '../../../../data/services/safety_api_service.dart';
+import '../../../../data/services/firestore_service.dart';
 import '../../controllers/main_controller.dart';
 
 class DashboardController extends GetxController {
-  final SafetyApiService _api = SafetyApiService.to;
+  final FirestoreService _firestore = FirestoreService.to;
   final MainController _main = Get.find<MainController>();
 
   // ── Observables ────────────────────────────────────────────────────────────
@@ -64,7 +64,7 @@ class DashboardController extends GetxController {
 
   Future<void> fetchCameras() async {
     try {
-      final raw = await _api.getCameras(enabledOnly: true);
+      final raw = await _firestore.getCameras();
       cameras.assignAll(raw.map((e) => CameraModel.fromJson(e)).toList());
       if (cameras.isNotEmpty) selectedCamera.value = cameras.first;
       if (Get.isRegistered<MainController>()) {
@@ -81,9 +81,8 @@ class DashboardController extends GetxController {
 
   Future<void> fetchRecentViolations() async {
     try {
-      final raw = await _api.getViolations(
+      final raw = await _firestore.getViolations(
         status: 'open',
-        enabledOnly: true,
         limit: 200,
       );
       violations.assignAll(raw.map((e) => ViolationModel.fromJson(e)).toList());
@@ -97,7 +96,7 @@ class DashboardController extends GetxController {
 
   Future<void> fetchSummary() async {
     try {
-      final s = await _api.getSummary(days: 1);
+      final s = await _firestore.getSummary(1);
       totalViolationsToday.value = (s['total_violations'] as int?) ?? 0;
       resolvedToday.value = (s['resolved'] as int?) ?? 0;
       activeZonesValue.value = (s['active_zones'] as int?) ?? 0;

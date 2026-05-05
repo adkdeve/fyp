@@ -3,12 +3,12 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../data/models/violation_model.dart';
-import '../../../../data/services/safety_api_service.dart';
+import '../../../../data/services/firestore_service.dart';
 import '../../violation_detail/bindings/violation_detail_binding.dart';
 import '../../violation_detail/views/violation_detail_view.dart';
 
 class HistoryController extends GetxController {
-  final SafetyApiService _api = SafetyApiService.to;
+  final FirestoreService _firestore = FirestoreService.to;
 
   final RxString searchTerm = ''.obs;
   final Rx<ViolationType?> filterType = Rx<ViolationType?>(null);
@@ -43,7 +43,7 @@ class HistoryController extends GetxController {
     if (!hasMore.value) return;
     isLoading.value = true;
     try {
-      final raw = await _api.getViolations(
+      final raw = await _firestore.getViolations(
         q: searchTerm.value,
         limit: _pageSize,
         offset: _offset,
@@ -148,7 +148,7 @@ class HistoryController extends GetxController {
 
   Future<void> exportData() async {
     try {
-      final bytes = await _api.exportViolations(q: searchTerm.value);
+      final bytes = await _firestore.exportViolations(q: searchTerm.value);
       final file = File(
         '${Directory.systemTemp.path}${Platform.pathSeparator}violations_${DateTime.now().millisecondsSinceEpoch}.csv',
       );

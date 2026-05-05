@@ -78,19 +78,6 @@ docker push YOUR_DOCKERHUB_USERNAME/construction-safety-backend:latest
 
 Kubernetes manifests for AKS are in `backend/k8s/`. Replace placeholders in the YAML files before deploying.
 
-## Flutter live backend config
-
-Run the app against local Docker:
-
-```bash
-flutter run --dart-define=API_BASE_URL=http://localhost:8000/api/v1/ --dart-define=IMAGE_BASE_URL=http://localhost:8000 --dart-define=WS_BASE_URL=ws://localhost:8000/ws --dart-define=ENABLE_MOCK_FALLBACK=false
-```
-
-Run the app against AKS after the backend service has an external URL:
-
-```bash
-flutter run --dart-define=API_BASE_URL=http://YOUR_AKS_BACKEND_URL/api/v1/ --dart-define=IMAGE_BASE_URL=http://YOUR_AKS_BACKEND_URL --dart-define=WS_BASE_URL=ws://YOUR_AKS_BACKEND_URL/ws --dart-define=ENABLE_MOCK_FALLBACK=false
-```
 
 ## Project layout
 

@@ -6,11 +6,11 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../../../core/config/app_config.dart';
 import '../../../../data/services/auth_service.dart';
-import '../../../../data/services/safety_api_service.dart';
+import '../../../../data/services/firestore_service.dart';
 import '../../../../routes/app_pages.dart';
 
 class ProfileController extends GetxController {
-  final SafetyApiService _api = SafetyApiService.to;
+  final FirestoreService _firestore = FirestoreService.to;
   final AuthService _auth = Get.find<AuthService>();
 
   final isEditing = false.obs;
@@ -50,7 +50,7 @@ class ProfileController extends GetxController {
   Future<void> fetchProfile() async {
     isLoading.value = true;
     try {
-      final user = await _api.getMe();
+      final user = await _firestore.getMe();
       _applyUser(user);
       await _auth.saveUserData(user);
     } catch (_) {
@@ -65,7 +65,7 @@ class ProfileController extends GetxController {
 
   Future<void> fetchStats() async {
     try {
-      final stats = await _api.getSummary(days: 30);
+      final stats = await _firestore.getSummary(30);
       formData['violations_resolved'] = '${stats['resolved'] ?? 0}';
       formData['active_zones'] = '${stats['active_zones'] ?? 0}';
       formData['avg_response_time'] = '${stats['avg_response_time'] ?? 0.0}s';
@@ -108,7 +108,7 @@ class ProfileController extends GetxController {
   Future<void> saveProfile() async {
     isLoading.value = true;
     try {
-      final updated = await _api.updateMe({
+      final updated = await _firestore.updateMe({
         'full_name': nameCtrl.text.trim(),
         'phone': phoneCtrl.text.trim(),
         'company': companyCtrl.text.trim(),
@@ -138,7 +138,7 @@ class ProfileController extends GetxController {
     );
     if (picked == null) return;
     try {
-      final updated = await _api.uploadAvatar(File(picked.path));
+      final updated = await _firestore.uploadAvatar(File(picked.path));
       _applyUser(updated);
       avatarRefreshKey.value++;
       await _auth.saveUserData(updated);
@@ -204,7 +204,7 @@ class ProfileController extends GetxController {
     String newPassword,
   ) async {
     try {
-      await _api.changePassword(currentPassword, newPassword);
+      await _firestore.changePassword(currentPassword, newPassword);
       Get.snackbar(
         'Success',
         'Password updated',
@@ -244,7 +244,7 @@ class ProfileController extends GetxController {
 
   Future<void> deleteAccount() async {
     try {
-      await _api.deleteAccount();
+      await _firestore.deleteAccount();
       await _auth.logout();
       Get.offAllNamed(Routes.LOGIN);
     } catch (e) {

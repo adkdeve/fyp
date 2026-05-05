@@ -1,20 +1,7 @@
-from sqlalchemy import create_engine
-from sqlalchemy.orm import DeclarativeBase, sessionmaker, Session
+"""
+Legacy db module — replaced by Firebase.
+Kept for import compatibility. All data now goes through Firestore.
+"""
+from .firebase_db import get_firestore, init_firebase
 
-from .config import settings
-
-
-engine = create_engine(settings.database_url, pool_pre_ping=True)
-SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
-
-
-class Base(DeclarativeBase):
-    pass
-
-
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+__all__ = ["get_firestore", "init_firebase"]

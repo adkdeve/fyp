@@ -5,10 +5,9 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=".env",
         extra="ignore",
-        protected_namespaces=("settings_",),  # silence model_path warning
+        protected_namespaces=("settings_",),
     )
 
-    database_url: str
     jwt_secret: str
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 60
@@ -19,6 +18,7 @@ class Settings(BaseSettings):
     detector: str = "yolo"
     fps_target: int = 5
     confidence_threshold: float = 0.35
+    firebase_project_id: str = "fyp-backend-fa22"
 
     @property
     def cors_origin_list(self) -> list[str]:
