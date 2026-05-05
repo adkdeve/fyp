@@ -4,6 +4,7 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:get/get.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'app/data/services/auth_service.dart';
 import 'app/routes/app_pages.dart';
 import 'app/core/core.dart';
@@ -11,6 +12,13 @@ import 'binding/app_binding.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  try {
+    await Firebase.initializeApp();
+  } catch (e) {
+    // Firebase may already be initialized or config missing
+    print('Firebase initialization error: $e');
+  }
 
   SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,

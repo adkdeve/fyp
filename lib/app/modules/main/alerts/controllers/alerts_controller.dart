@@ -1,21 +1,17 @@
-import 'dart:convert';
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:web_socket_channel/web_socket_channel.dart';
 
-import '../../../../core/values/apis_url.dart';
 import '../../../../data/models/violation_model.dart';
-import '../../../../data/services/auth_service.dart';
-import '../../../../data/services/safety_api_service.dart';
+import '../../../../data/services/firestore_service.dart';
 import '../../controllers/main_controller.dart';
 import '../../history/controllers/history_controller.dart';
 import '../../violation_detail/bindings/violation_detail_binding.dart';
 import '../../violation_detail/views/violation_detail_view.dart';
 
 class AlertsController extends GetxController {
-  final SafetyApiService _api = SafetyApiService.to;
-  final AuthService _auth = Get.find<AuthService>();
+  final FirestoreService _firestore = FirestoreService.to;
   final MainController _main = Get.find<MainController>();
 
   final RxList<ViolationModel> violations = <ViolationModel>[].obs;
@@ -25,37 +21,56 @@ class AlertsController extends GetxController {
   final Rx<ViolationSeverity?> severityFilter = Rx<ViolationSeverity?>(null);
   final searchController = TextEditingController();
 
-  WebSocketChannel? _wsChannel;
+  late StreamSubscription<List<ViolationModel>> _violationsSubscription;
 
   @override
   void onInit() {
     super.onInit();
     searchController.addListener(_handleSearchChanged);
-    fetchAlerts();
-    _connectWebSocket();
+    _initializeViolationsStream();
   }
 
   @override
   void onClose() {
     searchController.removeListener(_handleSearchChanged);
     searchController.dispose();
-    _wsChannel?.sink.close();
+    _violationsSubscription.cancel();
     super.onClose();
+  }
+
+  void _initializeViolationsStream() {
+    _violationsSubscription = _firestore
+        .getViolationsStream(
+          status: 'open',
+          severity: _severityToBackend(severityFilter.value),
+          limit: 200,
+        )
+        .listen(
+          (violationsList) {
+            violations.assignAll(violationsList);
+            if (searchTerm.value.isEmpty) {
+              _main.setViolations(violationsList);
+            }
+          },
+          onError: (e) {
+            Get.snackbar(
+              'Stream Error',
+              'Could not load alerts: $e',
+              snackPosition: SnackPosition.BOTTOM,
+            );
+          },
+        );
   }
 
   Future<void> fetchAlerts({bool unreadOnly = false}) async {
     isLoading.value = true;
     try {
-      final raw = await _api.getViolations(
+      final raw = await _firestore.getViolations(
         status: 'open',
-        enabledOnly: true,
-        q: searchTerm.value,
         severity: _severityToBackend(severityFilter.value),
         limit: 200,
       );
-      violations.assignAll(
-        raw.map((e) => ViolationModel.fromJson(e as Map<String, dynamic>)).toList(),
-      );
+      violations.assignAll(raw);
       if (!unreadOnly &&
           searchTerm.value.isEmpty &&
           severityFilter.value == null) {
@@ -72,60 +87,9 @@ class AlertsController extends GetxController {
     }
   }
 
-  Future<void> _connectWebSocket() async {
-    try {
-      final token = await _auth.getToken();
-      if (token == null) return;
-      _wsChannel = WebSocketChannel.connect(Uri.parse(ApisUrl.wsAlerts(token)));
-      _wsChannel!.stream.listen(
-        (message) {
-          try {
-            final data = jsonDecode(message as String) as Map<String, dynamic>;
-            if (data['type'] == 'new_violation') {
-              final violationMap = <String, dynamic>{
-                'id': data['violation_id'],
-                'type': data['violation_type'],
-                'severity': data['severity'],
-                'detected_at': data['detected_at'],
-                'snapshot_url': data['snapshot_url'],
-                'status': 'open',
-                'camera_id': data['camera_id'],
-                'camera': {
-                  'name': 'Camera ${data['camera_id']}',
-                  'location': null,
-                },
-              };
-              final v = ViolationModel.fromJson(violationMap);
-              violations.insert(0, v);
-              _main.upsertViolation(v);
-              if (Get.isRegistered<HistoryController>()) {
-                Get.find<HistoryController>().applyViolationUpdate(v);
-              }
-              Get.snackbar(
-                'New Violation',
-                v.description,
-                snackPosition: SnackPosition.TOP,
-                duration: const Duration(seconds: 4),
-              );
-            }
-          } catch (_) {}
-        },
-        onError: (_) => _reconnectAfterDelay(),
-        onDone: () => _reconnectAfterDelay(),
-      );
-    } catch (_) {}
-  }
-
-  void _reconnectAfterDelay() {
-    Future.delayed(const Duration(seconds: 5), () async {
-      await _api.tryRefreshToken();
-      _connectWebSocket();
-    });
-  }
-
   Future<void> markAllRead() async {
     try {
-      await _api.markAllAlertsRead();
+      await _firestore.markAllAlertsRead();
       await fetchAlerts();
       Get.snackbar(
         'Done',
@@ -147,12 +111,16 @@ class AlertsController extends GetxController {
   void setSearchTerm(String value) {
     if (searchTerm.value == value) return;
     searchTerm.value = value;
-    fetchAlerts();
+    // Filter locally instead of fetching
+    if (value.isEmpty && severityFilter.value == null) {
+      _initializeViolationsStream();
+    }
   }
 
   void setSeverityFilter(ViolationSeverity? severity) {
     severityFilter.value = severity;
-    fetchAlerts();
+    _violationsSubscription.cancel();
+    _initializeViolationsStream();
   }
 
   void viewDetails(ViolationModel violation) {
@@ -172,10 +140,7 @@ class AlertsController extends GetxController {
     final i = violations.indexWhere((v) => v.id == id);
     if (i == -1) return;
     try {
-      final intId = int.tryParse(id);
-      if (intId != null) {
-        await _api.resolveViolation(intId, 'false_positive');
-      }
+      await _firestore.resolveViolation(id, status: 'false_positive');
       final updated = violations[i].copyWith(status: ViolationStatus.dismissed);
       violations[i] = updated;
       violations.refresh();
@@ -192,10 +157,7 @@ class AlertsController extends GetxController {
     final i = violations.indexWhere((v) => v.id == id);
     if (i == -1) return;
     try {
-      final intId = int.tryParse(id);
-      if (intId != null) {
-        await _api.resolveViolation(intId, 'acknowledged');
-      }
+      await _firestore.resolveViolation(id, status: 'acknowledged');
       final updated = violations[i].copyWith(
         status: ViolationStatus.acknowledged,
         acknowledgedBy: 'Supervisor',

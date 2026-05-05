@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'package:get/get.dart';
 import '../../../data/models/camera_model.dart';
 import '../../../data/models/settings_model.dart';
 import '../../../data/models/violation_model.dart';
+import '../../../data/services/firestore_service.dart';
 
 enum Screen {
   dashboard,
@@ -18,6 +20,8 @@ enum Screen {
 }
 
 class MainController extends GetxController {
+  final FirestoreService _firestore = FirestoreService.to;
+
   var activeScreen = Screen.dashboard.obs;
   var violations = <ViolationModel>[].obs;
   var selectedViolation = Rxn<ViolationModel>();
@@ -29,6 +33,31 @@ class MainController extends GetxController {
     lowAlerts: true,
   ).obs;
   var autoDetection = true.obs;
+
+  // Stream subscriptions
+  late StreamSubscription<List<ViolationModel>> _violationsSubscription;
+  late StreamSubscription<List<CameraModel>> _camerasSubscription;
+
+  @override
+  void onInit() {
+    super.onInit();
+    _initializeStreams();
+  }
+
+  void _initializeStreams() {
+    // Subscribe to violations stream (real-time updates)
+    _violationsSubscription =
+        _firestore.getViolationsStream(limit: 100).listen(
+              (violationsList) => violations.assignAll(violationsList),
+              onError: (e) => print('Violations stream error: $e'),
+            );
+
+    // Subscribe to cameras stream (real-time updates)
+    _camerasSubscription = _firestore.getCamerasStream().listen(
+          (camerasList) => cameras.assignAll(camerasList),
+          onError: (e) => print('Cameras stream error: $e'),
+        );
+  }
 
   // Screen navigation
   void setActiveScreen(Screen screen) => activeScreen.value = screen;
@@ -90,7 +119,8 @@ class MainController extends GetxController {
     }
   }
 
-  void resolveViolation(String id) {
+  Future<void> resolveViolation(String id, String notes) async {
+    await _firestore.resolveViolation(id, status: 'resolved', notes: notes);
     final i = violations.indexWhere((v) => v.id == id);
     if (i != -1) {
       violations[i] = violations[i].copyWith(status: ViolationStatus.resolved);
@@ -142,5 +172,12 @@ class MainController extends GetxController {
   double getResolutionRate() {
     if (violations.isEmpty) return 0.0;
     return (getTotalResolvedViolations() / violations.length) * 100;
+  }
+
+  @override
+  void onClose() {
+    _violationsSubscription.cancel();
+    _camerasSubscription.cancel();
+    super.onClose();
   }
 }
