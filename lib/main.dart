@@ -20,10 +20,9 @@ void main() async {
     print('Firebase initialization error: $e');
   }
 
-  SystemChrome.setPreferredOrientations([
-    DeviceOrientation.portraitUp,
-    DeviceOrientation.portraitDown,
-  ]);
+  SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp, DeviceOrientation.portraitDown]);
+
+  R.theme.applySystemUIOverlayStyle(AppConfig.appDefaultTheme);
 
   // Check token before launching UI
   final authService = AuthService();

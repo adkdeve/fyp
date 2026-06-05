@@ -51,19 +51,12 @@ class CameraManagementView extends GetView<CameraManagementController> {
                   children: [
                     const Text(
                       'Camera Management',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.black87,
-                      ),
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.black87),
                     ),
                     Obx(
                       () => Text(
                         '${controller.cameras.length} cameras configured',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey,
-                        ),
+                        style: const TextStyle(fontSize: 12, color: Colors.grey),
                       ),
                     ),
                   ],
@@ -89,10 +82,7 @@ class CameraManagementView extends GetView<CameraManagementController> {
           decoration: InputDecoration(
             hintText: 'Search cameras...',
             prefixIcon: const Icon(Icons.search, size: 20, color: Colors.grey),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 12,
-            ),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: const BorderSide(color: Colors.grey),
@@ -133,10 +123,7 @@ class CameraManagementView extends GetView<CameraManagementController> {
       onSelected: (_) => controller.setStatusFilter(value),
       backgroundColor: Colors.grey[100],
       selectedColor: Colors.blue[100],
-      labelStyle: TextStyle(
-        color: selected ? Colors.blue[700] : Colors.grey[600],
-        fontSize: 12,
-      ),
+      labelStyle: TextStyle(color: selected ? Colors.blue[700] : Colors.grey[600], fontSize: 12),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       side: BorderSide.none,
     );
@@ -180,13 +167,7 @@ class CameraManagementView extends GetView<CameraManagementController> {
     });
   }
 
-  Widget _buildStatCard(
-    String title,
-    String value,
-    Color bgColor,
-    Color borderColor,
-    Color textColor,
-  ) {
+  Widget _buildStatCard(String title, String value, Color bgColor, Color borderColor, Color textColor) {
     return Container(
       decoration: BoxDecoration(
         color: bgColor,
@@ -200,11 +181,7 @@ class CameraManagementView extends GetView<CameraManagementController> {
           const SizedBox(height: 4),
           Text(
             value,
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: textColor,
-            ),
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: textColor),
           ),
         ],
       ),
@@ -224,110 +201,82 @@ class CameraManagementView extends GetView<CameraManagementController> {
   }
 
   Widget _buildCameraCard(CameraModel camera) {
-    return Obx(() {
-      final isOnline =
-          camera.enabled && camera.status.toLowerCase() == "online";
+    final isOnline = camera.enabled && camera.status.toLowerCase() == "online";
 
-      return Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.grey[200]!),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            children: [
-              // Camera header
-              Row(
-                children: [
-                  // Camera icon
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: isOnline ? Colors.green[100] : Colors.red[100],
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Icon(
-                      Icons.camera_alt,
-                      color: isOnline ? Colors.green[600] : Colors.red[600],
-                      size: 20,
-                    ),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey[200]!),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            // Camera header
+            Row(
+              children: [
+                // Camera icon
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: isOnline ? Colors.green[100] : Colors.red[100],
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  const SizedBox(width: 12),
-                  // Camera info
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Text(
-                              camera.name,
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.black87,
+                  child: Icon(Icons.camera_alt, color: isOnline ? Colors.green[600] : Colors.red[600], size: 20),
+                ),
+                const SizedBox(width: 12),
+                // Camera info
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            camera.name,
+                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.black87),
+                          ),
+                          const SizedBox(width: 8),
+                          Row(
+                            children: [
+                              Container(
+                                width: 8,
+                                height: 8,
+                                decoration: BoxDecoration(
+                                  color: isOnline ? Colors.green : Colors.red,
+                                  shape: BoxShape.circle,
+                                ),
                               ),
-                            ),
-                            const SizedBox(width: 8),
-                            Row(
-                              children: [
-                                Container(
-                                  width: 8,
-                                  height: 8,
-                                  decoration: BoxDecoration(
-                                    color: isOnline ? Colors.green : Colors.red,
-                                    shape: BoxShape.circle,
-                                  ),
-                                ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  isOnline ? 'online' : 'offline',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: isOnline
-                                        ? Colors.green[600]
-                                        : Colors.red[600],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          camera.zone,
-                          style: const TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey,
+                              const SizedBox(width: 4),
+                              Text(
+                                isOnline ? 'online' : 'offline',
+                                style: TextStyle(fontSize: 12, color: isOnline ? Colors.green[600] : Colors.red[600]),
+                              ),
+                            ],
                           ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          'ID: ${camera.id}',
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey,
-                          ),
-                        ),
-                      ],
-                    ),
+                        ],
+                      ),
+                      const SizedBox(height: 2),
+                      Text(camera.zone, style: const TextStyle(fontSize: 14, color: Colors.grey)),
+                      const SizedBox(height: 2),
+                      Text('ID: ${camera.id}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                    ],
                   ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              // Camera preview
-              _buildCameraPreview(camera),
-              const SizedBox(height: 12),
-              // Controls
-              _buildCameraControls(camera, isOnline),
-            ],
-          ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            // Camera preview
+            _buildCameraPreview(camera),
+            const SizedBox(height: 12),
+            // Controls
+            _buildCameraControls(camera, isOnline),
+          ],
         ),
-      );
-    });
+      ),
+    );
   }
 
   Widget _buildCameraPreview(CameraModel camera) {
@@ -367,12 +316,7 @@ class CameraManagementView extends GetView<CameraManagementController> {
                     camera.enabled
                         ? 'Open the feed to inspect the latest frames and take snapshots.'
                         : 'Enable it to make it visible on the dashboard and eligible for alert storage.',
-                    style: TextStyle(
-                      color: camera.enabled
-                          ? Colors.white70
-                          : Colors.grey[700],
-                      fontSize: 12,
-                    ),
+                    style: TextStyle(color: camera.enabled ? Colors.white70 : Colors.grey[700], fontSize: 12),
                   ),
                 ],
               ),
@@ -388,34 +332,15 @@ class CameraManagementView extends GetView<CameraManagementController> {
       children: [
         Expanded(
           child: ElevatedButton.icon(
-            onPressed: camera.enabled
-                ? () => controller.handleViewFeed(camera)
-                : null,
-            icon: Icon(
-              Icons.open_in_new,
-              size: 16,
-              color: camera.enabled ? Colors.blue[700] : Colors.grey,
-            ),
-            label: Text(
-              'Open Feed',
-              style: TextStyle(
-                color: camera.enabled ? Colors.blue[700] : Colors.grey[700],
-              ),
-            ),
+            onPressed: camera.enabled ? () => controller.handleViewFeed(camera) : null,
+            icon: Icon(Icons.open_in_new, size: 16, color: camera.enabled ? Colors.blue[700] : Colors.grey),
+            label: Text('Open Feed', style: TextStyle(color: camera.enabled ? Colors.blue[700] : Colors.grey[700])),
             style: ElevatedButton.styleFrom(
-              backgroundColor: camera.enabled
-                  ? Colors.blue[50]
-                  : Colors.grey[50],
-              foregroundColor: camera.enabled
-                  ? Colors.blue[700]
-                  : Colors.grey[700],
-              side: BorderSide(
-                color: camera.enabled ? Colors.blue[200]! : Colors.grey[200]!,
-              ),
+              backgroundColor: camera.enabled ? Colors.blue[50] : Colors.grey[50],
+              foregroundColor: camera.enabled ? Colors.blue[700] : Colors.grey[700],
+              side: BorderSide(color: camera.enabled ? Colors.blue[200]! : Colors.grey[200]!),
               padding: const EdgeInsets.symmetric(vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
           ),
         ),
@@ -426,20 +351,14 @@ class CameraManagementView extends GetView<CameraManagementController> {
             onPressed: () => controller.toggleStatus(camera.id),
             child: Text(
               camera.enabled ? 'Disable' : 'Enable',
-              style: TextStyle(
-                color: isOnline ? Colors.green[700] : Colors.red[700],
-              ),
+              style: TextStyle(color: isOnline ? Colors.green[700] : Colors.red[700]),
             ),
             style: ElevatedButton.styleFrom(
               backgroundColor: isOnline ? Colors.green[50] : Colors.red[50],
               foregroundColor: isOnline ? Colors.green[700] : Colors.red[700],
-              side: BorderSide(
-                color: isOnline ? Colors.green[200]! : Colors.red[200]!,
-              ),
+              side: BorderSide(color: isOnline ? Colors.green[200]! : Colors.red[200]!),
               padding: const EdgeInsets.symmetric(vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
           ),
         ),

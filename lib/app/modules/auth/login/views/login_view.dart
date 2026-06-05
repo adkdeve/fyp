@@ -28,48 +28,41 @@ class LoginView extends GetView<LoginController> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                  // Logo / Title
-                  Icon(Icons.construction, size: 64.r, color: const Color(0xFF3B82F6)),
-                  SizedBox(height: 16.h),
-                  Text(
-                    'Construction Safety',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 24.sp,
-                      fontWeight: FontWeight.bold,
+                    // Logo / Title
+                    Icon(Icons.construction, size: 64.r, color: const Color(0xFF3B82F6)),
+                    SizedBox(height: 16.h),
+                    Text(
+                      'Construction Safety',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.white, fontSize: 24.sp, fontWeight: FontWeight.bold),
                     ),
-                  ),
-                  Text(
-                    'Supervisor Portal',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.white54, fontSize: 14.sp),
-                  ),
-                  SizedBox(height: 40.h),
-
-                  // Email field
-                  _buildLabel('Email'),
-                  SizedBox(height: 6.h),
-                  TextFormField(
-                    controller: controller.emailCtrl,
-                    keyboardType: TextInputType.emailAddress,
-                    style: const TextStyle(color: Colors.white),
-                    decoration: _inputDecoration(
-                      hint: 'supervisor@example.com',
-                      icon: Icons.email_outlined,
+                    Text(
+                      'Supervisor Portal',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.white54, fontSize: 14.sp),
                     ),
-                    validator: (v) {
-                      if (v == null || v.trim().isEmpty) return 'Email is required';
-                      if (!v.contains('@')) return 'Enter a valid email';
-                      return null;
-                    },
-                  ),
-                  SizedBox(height: 16.h),
+                    SizedBox(height: 40.h),
 
-                  // Password field
-                  _buildLabel('Password'),
-                  SizedBox(height: 6.h),
-                  Obx(() => TextFormField(
+                    // Login ID field
+                    _buildLabel('Login ID'),
+                    SizedBox(height: 6.h),
+                    TextFormField(
+                      controller: controller.emailCtrl,
+                      keyboardType: TextInputType.text,
+                      style: const TextStyle(color: Colors.white),
+                      decoration: _inputDecoration(hint: 'so-spidermon-1359', icon: Icons.person_outlined),
+                      validator: (v) {
+                        if (v == null || v.trim().isEmpty) return 'Login ID is required';
+                        return null;
+                      },
+                    ),
+                    SizedBox(height: 16.h),
+
+                    // Password field
+                    _buildLabel('Password'),
+                    SizedBox(height: 6.h),
+                    Obx(
+                      () => TextFormField(
                         controller: controller.passwordCtrl,
                         obscureText: controller.obscurePassword.value,
                         style: const TextStyle(color: Colors.white),
@@ -92,60 +85,48 @@ class LoginView extends GetView<LoginController> {
                           if (v.length < 4) return 'Password too short';
                           return null;
                         },
-                      )),
-                  SizedBox(height: 32.h),
+                      ),
+                    ),
+                    SizedBox(height: 32.h),
 
-                  // Login button
-                  Obx(() => ElevatedButton(
-                        onPressed: controller.isLoading.value
-                            ? null
-                            : () => controller.login(_formKey),
+                    // Login button
+                    Obx(
+                      () => ElevatedButton(
+                        onPressed: controller.isLoading.value ? null : () => controller.login(_formKey),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF3B82F6),
                           disabledBackgroundColor: const Color(0xFF3B82F6).withOpacity(0.5),
                           padding: EdgeInsets.symmetric(vertical: 14.h),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10.r),
-                          ),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.r)),
                         ),
                         child: controller.isLoading.value
                             ? SizedBox(
                                 height: 20.r,
                                 width: 20.r,
-                                child: const CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Colors.white,
-                                ),
+                                child: const CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                               )
                             : Text(
                                 'Sign In',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 16.sp,
-                                  fontWeight: FontWeight.w600,
-                                ),
+                                style: TextStyle(color: Colors.white, fontSize: 16.sp, fontWeight: FontWeight.w600),
                               ),
-                      )),
-                ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
         ),
       ),
-    ),
-  );
+    );
   }
 
   Widget _buildLabel(String text) => Text(
-        text,
-        style: TextStyle(color: Colors.white70, fontSize: 13.sp),
-      );
+    text,
+    style: TextStyle(color: Colors.white70, fontSize: 13.sp),
+  );
 
-  InputDecoration _inputDecoration({
-    required String hint,
-    required IconData icon,
-    Widget? suffix,
-  }) {
+  InputDecoration _inputDecoration({required String hint, required IconData icon, Widget? suffix}) {
     return InputDecoration(
       hintText: hint,
       hintStyle: const TextStyle(color: Colors.white30),

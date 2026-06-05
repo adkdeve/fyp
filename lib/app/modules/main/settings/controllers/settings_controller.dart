@@ -20,11 +20,7 @@ class SettingsController extends GetxController {
   final AuthService _auth = Get.find<AuthService>();
   final FirestoreService _firestore = FirestoreService.to;
 
-  final notificationSettings = NotificationSettings(
-    criticalAlerts: true,
-    mediumAlerts: true,
-    lowAlerts: true,
-  ).obs;
+  final notificationSettings = NotificationSettings(criticalAlerts: true, mediumAlerts: true, lowAlerts: true).obs;
   final Rxn<UserModel> currentUser = Rxn<UserModel>();
   final cameraCount = 0.obs;
   final avatarRefreshKey = 0.obs;
@@ -36,11 +32,7 @@ class SettingsController extends GetxController {
   }
 
   Future<void> loadSettingsData() async {
-    await Future.wait([
-      loadProfile(),
-      loadNotificationSettings(),
-      loadCameraCount(),
-    ]);
+    await Future.wait([loadProfile(), loadNotificationSettings(), loadCameraCount()]);
   }
 
   Future<void> loadProfile() async {
@@ -72,27 +64,19 @@ class SettingsController extends GetxController {
   Future<void> toggleNotification(String key) async {
     final current = notificationSettings.value;
     final next = current.copyWith(
-      criticalAlerts: key == 'criticalAlerts'
-          ? !current.criticalAlerts
-          : current.criticalAlerts,
-      mediumAlerts: key == 'mediumAlerts'
-          ? !current.mediumAlerts
-          : current.mediumAlerts,
-      lowAlerts: key == 'lowAlerts'
-          ? !current.lowAlerts
-          : current.lowAlerts,
+      criticalAlerts: key == 'criticalAlerts' ? !current.criticalAlerts : current.criticalAlerts,
+      mediumAlerts: key == 'mediumAlerts' ? !current.mediumAlerts : current.mediumAlerts,
+      lowAlerts: key == 'lowAlerts' ? !current.lowAlerts : current.lowAlerts,
     );
     notificationSettings.value = next;
     try {
-      final updated = await _firestore.updateNotificationSettings(next.toJson());
-      notificationSettings.value = NotificationSettings.fromJson(updated);
+      final success = await _firestore.updateNotificationSettings(next.toJson());
+      if (success) {
+        notificationSettings.value = next;
+      }
     } catch (e) {
       notificationSettings.value = current;
-      Get.snackbar(
-        'Settings Error',
-        e.toString(),
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      Get.snackbar('Settings Error', e.toString(), snackPosition: SnackPosition.BOTTOM);
     }
   }
 
@@ -121,14 +105,11 @@ class SettingsController extends GetxController {
     await loadProfile();
   }
 
-  void navigateToCameraManagement() =>
-      Get.to(CameraManagementView(), binding: CameraManagementBinding());
+  void navigateToCameraManagement() => Get.to(CameraManagementView(), binding: CameraManagementBinding());
 
-  void navigateToHelp() =>
-      Get.to(HelpSupportView(), binding: HelpsupportBinding());
+  void navigateToHelp() => Get.to(HelpSupportView(), binding: HelpsupportBinding());
 
-  void navigateToTerms() =>
-      Get.to(TermsPrivacyView(), binding: TermsprivacyBinding());
+  void navigateToTerms() => Get.to(TermsPrivacyView(), binding: TermsprivacyBinding());
 
   String get userInitials {
     final name = currentUser.value?.name ?? '';

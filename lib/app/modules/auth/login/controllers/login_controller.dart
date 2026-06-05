@@ -21,10 +21,7 @@ class LoginController extends GetxController {
     FocusManager.instance.primaryFocus?.unfocus();
     isLoading.value = true;
     try {
-      final res = await _firestore.login(
-        emailCtrl.text.trim(),
-        passwordCtrl.text.trim(),
-      );
+      final res = await _firestore.login(emailCtrl.text.trim(), passwordCtrl.text.trim());
 
       // Check for errors
       if (res.containsKey('error')) {
@@ -34,10 +31,7 @@ class LoginController extends GetxController {
       // Firebase Auth handles token automatically, save token for API calls if needed
       final token = res['token'] as String?;
       if (token != null) {
-        await _auth.saveTokens(
-          accessToken: token,
-          refreshToken: null,
-        );
+        await _auth.saveTokens(accessToken: token, refreshToken: null);
       }
 
       // Save user data
@@ -47,6 +41,7 @@ class LoginController extends GetxController {
 
       Get.offAllNamed(AppPages.INITIAL);
     } catch (e) {
+      print('Login error: $e');
       Get.snackbar(
         'Login Failed',
         e.toString(),

@@ -1,7 +1,9 @@
 import '../../core/config/app_config.dart';
 
 enum ViolationType { PPE, Unauthorized, Hazardous, Material }
+
 enum ViolationSeverity { high, medium, low }
+
 enum ViolationStatus { active, acknowledged, dismissed, resolved }
 
 // ── Backend → Flutter enum mapping ──────────────────────────────────────────
@@ -74,6 +76,24 @@ DateTime _parseDetectedAt(String? raw) {
   return parsed.isUtc ? parsed.toLocal() : parsed;
 }
 
+// Safe integer parsing helper
+int? _parseIntSafe(dynamic value) {
+  if (value == null) return null;
+  if (value is int) return value;
+  if (value is String) return int.tryParse(value);
+  if (value is double) return value.toInt();
+  return null;
+}
+
+// Safe double parsing helper
+double? _parseDoubleSafe(dynamic value) {
+  if (value == null) return null;
+  if (value is double) return value;
+  if (value is int) return value.toDouble();
+  if (value is String) return double.tryParse(value);
+  return null;
+}
+
 // ── Model ────────────────────────────────────────────────────────────────────
 
 class ViolationModel {
@@ -88,6 +108,7 @@ class ViolationModel {
   final String? acknowledgedBy;
   final double? confidence;
   final int? cameraId;
+
   /// Raw backend type string (e.g. "no_helmet") for resolving
   final String? rawType;
 
@@ -110,40 +131,51 @@ class ViolationModel {
     final rawType = json['type'] as String?;
     final snapshotPath = json['snapshot_url'] as String?;
     final camera = json['camera'] as Map<String, dynamic>?;
-    final cameraLocation =
-        camera?['location'] as String? ?? camera?['name'] as String? ?? 'Unknown Zone';
+    final cameraLocation = camera?['location'] as String? ?? camera?['name'] as String? ?? 'Unknown Zone';
+
+    // Safe parsing for numeric values
+    final confidenceValue = _parseDoubleSafe(json['confidence']);
+    final cameraIdValue = _parseIntSafe(json['camera_id']);
+
+    // Handle camera ID from nested camera object if present
+    final cameraIdFromNested = camera?['id'] != null ? _parseIntSafe(camera?['id']) : null;
+
+    final finalCameraId = cameraIdValue ?? cameraIdFromNested;
 
     return ViolationModel(
       id: json['id']?.toString() ?? '',
       type: _typeFromBackend(rawType),
       zone: cameraLocation,
-      description: (json['notes'] as String?)?.isNotEmpty == true
-          ? json['notes']
-          : _typeDescription(rawType),
+      description: (json['notes'] as String?)?.isNotEmpty == true ? json['notes'] : _typeDescription(rawType),
       time: _parseDetectedAt(json['detected_at'] as String?),
       status: _statusFromBackend(json['status'] as String?),
       severity: _severityFromBackend(json['severity'] as String?),
-      imageUrl: snapshotPath != null
-          ? '${AppConfig.imageBaseUrl}$snapshotPath'
-          : null,
+      imageUrl: (() {
+        if (snapshotPath == null) return null;
+        final s = snapshotPath.trim();
+        final lower = s.toLowerCase();
+        if (lower.startsWith('http://') || lower.startsWith('https://')) return s;
+        if (s.startsWith('/')) return '${AppConfig.imageBaseUrl}$s';
+        return '${AppConfig.imageBaseUrl}/$s';
+      })(),
       acknowledgedBy: json['resolved_by'] as String?,
-      confidence: (json['confidence'] as num?)?.toDouble(),
-      cameraId: json['camera_id'] as int? ?? camera?['id'] as int?,
+      confidence: confidenceValue,
+      cameraId: finalCameraId,
       rawType: rawType,
     );
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'type': rawType ?? type.name,
-        'zone': zone,
-        'description': description,
-        'time': time.toIso8601String(),
-        'status': status.name,
-        'severity': severity.name,
-        'imageUrl': imageUrl,
-        'acknowledgedBy': acknowledgedBy,
-      };
+    'id': id,
+    'type': rawType ?? type.name,
+    'zone': zone,
+    'description': description,
+    'time': time.toIso8601String(),
+    'status': status.name,
+    'severity': severity.name,
+    'imageUrl': imageUrl,
+    'acknowledgedBy': acknowledgedBy,
+  };
 
   ViolationModel copyWith({
     String? id,

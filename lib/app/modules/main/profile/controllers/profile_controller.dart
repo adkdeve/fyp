@@ -71,9 +71,7 @@ class ProfileController extends GetxController {
       formData['avg_response_time'] = '${stats['avg_response_time'] ?? 0.0}s';
       final total = (stats['total_violations'] as int?) ?? 0;
       final resolved = (stats['resolved'] as int?) ?? 0;
-      formData['avg_response_rate'] = total == 0
-          ? '100%'
-          : '${((resolved / total) * 100).round()}%';
+      formData['avg_response_rate'] = total == 0 ? '100%' : '${((resolved / total) * 100).round()}%';
       formData.refresh();
     } catch (_) {}
   }
@@ -117,11 +115,7 @@ class ProfileController extends GetxController {
       _applyUser(updated);
       await _auth.saveUserData(updated);
       isEditing.value = false;
-      Get.snackbar(
-        'Success',
-        'Profile updated successfully',
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      Get.snackbar('Success', 'Profile updated successfully', snackPosition: SnackPosition.BOTTOM);
     } catch (e) {
       Get.snackbar('Error', e.toString(), snackPosition: SnackPosition.BOTTOM);
     } finally {
@@ -138,15 +132,13 @@ class ProfileController extends GetxController {
     );
     if (picked == null) return;
     try {
-      final updated = await _firestore.uploadAvatar(File(picked.path));
-      _applyUser(updated);
-      avatarRefreshKey.value++;
-      await _auth.saveUserData(updated);
-      Get.snackbar(
-        'Success',
-        'Profile photo updated',
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      final avatarUrl = await _firestore.uploadAvatar(File(picked.path));
+      if (avatarUrl != null) {
+        formData['avatar_url'] = avatarUrl;
+        formData.refresh();
+        avatarRefreshKey.value++;
+      }
+      Get.snackbar('Success', 'Profile photo updated', snackPosition: SnackPosition.BOTTOM);
     } catch (e) {
       Get.snackbar('Error', e.toString(), snackPosition: SnackPosition.BOTTOM);
     }
@@ -199,17 +191,10 @@ class ProfileController extends GetxController {
     });
   }
 
-  Future<void> changePassword(
-    String currentPassword,
-    String newPassword,
-  ) async {
+  Future<void> changePassword(String currentPassword, String newPassword) async {
     try {
       await _firestore.changePassword(currentPassword, newPassword);
-      Get.snackbar(
-        'Success',
-        'Password updated',
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      Get.snackbar('Success', 'Password updated', snackPosition: SnackPosition.BOTTOM);
     } catch (e) {
       Get.snackbar('Error', e.toString(), snackPosition: SnackPosition.BOTTOM);
     }

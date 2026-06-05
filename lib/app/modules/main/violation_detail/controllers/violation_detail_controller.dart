@@ -35,6 +35,7 @@ class ViolationDetailController extends GetxController {
       final id = int.tryParse(v.id);
       if (id != null) {
         await _firestore.resolveViolation(id.toString(), status: 'resolved');
+      }
       final updated = v.copyWith(status: ViolationStatus.resolved);
       selectedViolation.value = updated;
       _main.upsertViolation(updated);
@@ -44,11 +45,7 @@ class ViolationDetailController extends GetxController {
       if (Get.isRegistered<HistoryController>()) {
         Get.find<HistoryController>().applyViolationUpdate(updated);
       }
-      Get.snackbar(
-        'Resolved',
-        'Violation marked as resolved',
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      Get.snackbar('Resolved', 'Violation marked as resolved', snackPosition: SnackPosition.BOTTOM);
     } catch (e) {
       Get.snackbar('Error', e.toString(), snackPosition: SnackPosition.BOTTOM);
     } finally {
@@ -64,6 +61,7 @@ class ViolationDetailController extends GetxController {
       final id = int.tryParse(v.id);
       if (id != null) {
         await _firestore.resolveViolation(id.toString(), status: 'false_positive');
+      }
       final updated = v.copyWith(status: ViolationStatus.dismissed);
       selectedViolation.value = updated;
       _main.upsertViolation(updated);
@@ -73,11 +71,7 @@ class ViolationDetailController extends GetxController {
       if (Get.isRegistered<HistoryController>()) {
         Get.find<HistoryController>().applyViolationUpdate(updated);
       }
-      Get.snackbar(
-        'Updated',
-        'Marked as false positive',
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      Get.snackbar('Updated', 'Marked as false positive', snackPosition: SnackPosition.BOTTOM);
     } catch (e) {
       Get.snackbar('Error', e.toString(), snackPosition: SnackPosition.BOTTOM);
     } finally {
@@ -103,11 +97,7 @@ Description: ${v.description}
 Confidence: ${v.confidence ?? 0}
 Snapshot: ${v.imageUrl ?? ''}
 ''');
-    Get.snackbar(
-      'Report Saved',
-      file.path,
-      snackPosition: SnackPosition.BOTTOM,
-    );
+    Get.snackbar('Report Saved', file.path, snackPosition: SnackPosition.BOTTOM);
   }
 
   void handleShare() {
@@ -125,12 +115,7 @@ Snapshot: ${v.imageUrl ?? ''}
   Map<String, dynamic> getSeverityConfig(ViolationSeverity severity) {
     switch (severity) {
       case ViolationSeverity.high:
-        return {
-          'bg': Colors.red[50]!,
-          'border': Colors.red,
-          'text': Colors.red[700]!,
-          'badge': Colors.red[100]!,
-        };
+        return {'bg': Colors.red[50]!, 'border': Colors.red, 'text': Colors.red[700]!, 'badge': Colors.red[100]!};
       case ViolationSeverity.medium:
         return {
           'bg': Colors.yellow[50]!,
@@ -139,12 +124,7 @@ Snapshot: ${v.imageUrl ?? ''}
           'badge': Colors.orange[100]!,
         };
       case ViolationSeverity.low:
-        return {
-          'bg': Colors.blue[50]!,
-          'border': Colors.blue,
-          'text': Colors.blue[700]!,
-          'badge': Colors.blue[100]!,
-        };
+        return {'bg': Colors.blue[50]!, 'border': Colors.blue, 'text': Colors.blue[700]!, 'badge': Colors.blue[100]!};
     }
   }
 

@@ -30,19 +30,21 @@ class CameraFeedController extends GetxController {
     super.onInit();
     if (Get.arguments != null && Get.arguments is CameraModel) {
       selectedCamera.value = Get.arguments as CameraModel;
+      print(
+        '🎥 CameraFeedController: Got camera from arguments: ${selectedCamera.value?.name} (ID: ${selectedCamera.value?.id})',
+      );
     } else {
+      print('⚠️ CameraFeedController: No camera arguments passed');
       selectedCamera.value = CameraModel(
-        id: 1,
+        id: 'nn212mrc7aJSTagXDzdL', // Use actual Firebase camera ID
         name: 'Camera 1',
         rtspUrl: '',
         status: 'online',
         enabled: true,
+        fpsTarget: 5,
       );
     }
-    _clockTimer = Timer.periodic(
-      const Duration(seconds: 1),
-      (_) => _updateTime(),
-    );
+    _clockTimer = Timer.periodic(const Duration(seconds: 1), (_) => _updateTime());
     _updateTime();
     _initStream();
   }
@@ -79,7 +81,7 @@ class CameraFeedController extends GetxController {
     _fetchFrame(camId);
   }
 
-  Future<void> _fetchFrame(int cameraId) async {
+  Future<void> _fetchFrame(dynamic cameraId) async {
     if (_fetching) return;
     _fetching = true;
     try {
@@ -88,7 +90,11 @@ class CameraFeedController extends GetxController {
       Future<http.StreamedResponse> doRequest() {
         final req = http.Request('GET', url);
         if (_token != null) req.headers['Authorization'] = 'Bearer $_token';
-        return _client.send(req).timeout(const Duration(seconds: 4));
+
+        // 🌟 CRUCIAL: Add this header to skip localtunnel's landing screen
+        req.headers['bypass-tunnel-reminder'] = 'true';
+
+        return _client.send(req).timeout(const Duration(seconds: 8));
       }
 
       var res = await doRequest();
@@ -97,6 +103,7 @@ class CameraFeedController extends GetxController {
         await res.stream.drain<void>();
         _token = await _auth.getToken();
         res = await doRequest();
+      }
 
       if (res.statusCode == 200) {
         final bytes = await res.stream.toBytes();
@@ -105,8 +112,13 @@ class CameraFeedController extends GetxController {
           isStreamLoading.value = false;
           streamError.value = false;
         }
+      } else {
+        print('❌ Frame request failed: ${res.statusCode}');
+        streamError.value = true;
+        await res.stream.drain<void>(); // Cleanup to prevent memory leaks
       }
-    } catch (_) {
+    } catch (e) {
+      print('❌ Frame fetch error: $e');
       streamError.value = true;
     } finally {
       _fetching = false;
@@ -126,11 +138,7 @@ class CameraFeedController extends GetxController {
   Future<void> takeSnapshot() async {
     final camId = selectedCamera.value?.id;
     if (camId == null) return;
-    Get.snackbar(
-      'Snapshot',
-      'Snapshot functionality pending implementation',
-      snackPosition: SnackPosition.BOTTOM,
-    );
+    Get.snackbar('Snapshot', 'Snapshot functionality pending implementation', snackPosition: SnackPosition.BOTTOM);
   }
 
   void enterFullscreen() {
@@ -143,12 +151,7 @@ class CameraFeedController extends GetxController {
         child: Stack(
           children: [
             Center(
-              child: InteractiveViewer(
-                child: RotatedBox(
-                  quarterTurns: 0,
-                  child: Image.memory(bytes),
-                ),
-              ),
+              child: InteractiveViewer(child: RotatedBox(quarterTurns: 0, child: Image.memory(bytes))),
             ),
             Positioned(
               top: 20,

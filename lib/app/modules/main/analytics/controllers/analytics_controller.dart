@@ -61,12 +61,10 @@ class AnalyticsController extends GetxController {
       totalViolations.value = (s['total_violations'] as int?) ?? 0;
       activeViolations.value = (s['open_violations'] as int?) ?? 0;
       complianceRate.value = (s['compliance_rate'] as int?) ?? 100;
-      avgResponseTime.value =
-          (s['avg_response_time'] as num?)?.toDouble() ?? 0.0;
+      avgResponseTime.value = (s['avg_response_time'] as num?)?.toDouble() ?? 0.0;
       activeZones.value = (s['active_zones'] as int?) ?? 0;
       detectionAccuracy.value = (s['detection_accuracy'] as int?) ?? 94;
-      falsePositiveRate.value =
-          (s['false_positive_rate'] as num?)?.toDouble() ?? 0.0;
+      falsePositiveRate.value = (s['false_positive_rate'] as num?)?.toDouble() ?? 0.0;
       processingFps.value = (s['processing_fps'] as int?) ?? 30;
     } catch (_) {}
   }
@@ -76,21 +74,14 @@ class AnalyticsController extends GetxController {
       final raw = await _firestore.getTrend(days);
       final parsed = raw.map((e) {
         final m = e as Map<String, dynamic>;
-        return AnalyticsData(
-          period: m['date'] as String? ?? '',
-          violations: (m['count'] as int?) ?? 0,
-        );
+        return AnalyticsData(period: m['date'] as String? ?? '', violations: (m['count'] as int?) ?? 0);
       }).toList();
       if (days <= 7) {
         weeklyData.assignAll(parsed);
       } else {
         monthlyData.assignAll(parsed);
       }
-      complianceTrend.assignAll(
-        parsed
-            .map((e) => ComplianceTrend(week: e.period, compliance: e.violations))
-            .toList(),
-      );
+      complianceTrend.assignAll(parsed.map((e) => ComplianceTrend(week: e.period, compliance: e.violations)).toList());
     } catch (_) {}
   }
 
@@ -121,16 +112,9 @@ class AnalyticsController extends GetxController {
       final parsed = raw.asMap().entries.map((entry) {
         final m = entry.value as Map<String, dynamic>;
         final count = (m['count'] as int?) ?? 0;
-        final name =
-            (m['camera_name'] ?? m['camera']) as String? ??
-            'Camera ${entry.key + 1}';
+        final name = (m['camera_name'] ?? m['camera']) as String? ?? 'Camera ${entry.key + 1}';
         final share = totalCount == 0 ? 0 : ((count / totalCount) * 100).round();
-        return ZonePerformance(
-          zone: name,
-          compliance: share,
-          violations: count,
-          id: (entry.key + 1).toString(),
-        );
+        return ZonePerformance(zone: name, compliance: share, violations: count, id: (entry.key + 1).toString());
       }).toList();
       zonePerformance.assignAll(parsed);
     } catch (_) {}
@@ -165,8 +149,7 @@ class AnalyticsController extends GetxController {
     fetchAll(days: days);
   }
 
-  List<AnalyticsData> get currentData =>
-      timeRange.value == 'month' ? monthlyData : weeklyData;
+  List<AnalyticsData> get currentData => timeRange.value == 'month' ? monthlyData : weeklyData;
 
   Future<void> handleExport() async {
     try {
@@ -175,22 +158,14 @@ class AnalyticsController extends GetxController {
           : timeRange.value == 'year'
           ? 365
           : 7;
-      final bytes = await _firestore.exportAnalytics(days);
-      final file = File(
-        '${Directory.systemTemp.path}${Platform.pathSeparator}analytics_${DateTime.now().millisecondsSinceEpoch}.csv',
-      );
-      await file.writeAsBytes(bytes);
-      Get.snackbar(
-        'Export Ready',
-        'Saved to ${file.path}',
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      final success = await _firestore.exportAnalytics(days);
+      if (success) {
+        Get.snackbar('Export Ready', 'Analytics exported successfully', snackPosition: SnackPosition.BOTTOM);
+      } else {
+        Get.snackbar('Export Failed', 'Could not export analytics', snackPosition: SnackPosition.BOTTOM);
+      }
     } catch (e) {
-      Get.snackbar(
-        'Export Failed',
-        e.toString(),
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      Get.snackbar('Export Failed', e.toString(), snackPosition: SnackPosition.BOTTOM);
     }
   }
 
@@ -201,12 +176,10 @@ class AnalyticsController extends GetxController {
         message = 'Compliance Rate: ${complianceRate.value}%';
         break;
       case 'violations':
-        message =
-            'Total: ${totalViolations.value} • Active: ${activeViolations.value}';
+        message = 'Total: ${totalViolations.value} • Active: ${activeViolations.value}';
         break;
       case 'response':
-        message =
-            'Avg response time: ${avgResponseTime.value.toStringAsFixed(1)}s';
+        message = 'Avg response time: ${avgResponseTime.value.toStringAsFixed(1)}s';
         break;
       default:
         message = 'Monitoring ${activeZones.value} enabled camera zones';
@@ -234,9 +207,7 @@ class AnalyticsController extends GetxController {
     Get.dialog(
       AlertDialog(
         title: Text(zone.zone),
-        content: Text(
-          'Share of violations: ${zone.compliance}%\nViolations: ${zone.violations}',
-        ),
+        content: Text('Share of violations: ${zone.compliance}%\nViolations: ${zone.violations}'),
         actions: [TextButton(onPressed: Get.back, child: const Text('OK'))],
       ),
     );

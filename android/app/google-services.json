@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1053439862866",
+    "project_id": "fyp-backend-fa22",
+    "storage_bucket": "fyp-backend-fa22.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1053439862866:android:eab3f2b5c91995fcf2978b",
+        "android_client_info": {
+          "package_name": "com.adkdev.construction_site_safety"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCxF0gmUn6kA3jsq4egf5OAIWOxQ7dPxS4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -52,11 +52,7 @@ class DashboardController extends GetxController {
   Future<void> fetchAll() async {
     isLoading.value = true;
     try {
-      await Future.wait([
-        fetchCameras(),
-        fetchRecentViolations(),
-        fetchSummary(),
-      ]);
+      await Future.wait([fetchCameras(), fetchRecentViolations(), fetchSummary()]);
     } finally {
       isLoading.value = false;
     }
@@ -65,27 +61,20 @@ class DashboardController extends GetxController {
   Future<void> fetchCameras() async {
     try {
       final raw = await _firestore.getCameras();
-      cameras.assignAll(raw.map((e) => CameraModel.fromJson(e)).toList());
+      cameras.assignAll(raw);
       if (cameras.isNotEmpty) selectedCamera.value = cameras.first;
       if (Get.isRegistered<MainController>()) {
         Get.find<MainController>().setCameras(cameras);
       }
     } catch (e) {
-      Get.snackbar(
-        'Camera Error',
-        e.toString(),
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      Get.snackbar('Camera Error', e.toString(), snackPosition: SnackPosition.BOTTOM);
     }
   }
 
   Future<void> fetchRecentViolations() async {
     try {
-      final raw = await _firestore.getViolations(
-        status: 'open',
-        limit: 200,
-      );
-      violations.assignAll(raw.map((e) => ViolationModel.fromJson(e)).toList());
+      final raw = await _firestore.getViolations(status: 'open', limit: 200);
+      violations.assignAll(raw);
       if (Get.isRegistered<MainController>()) {
         Get.find<MainController>().setViolations(violations);
       }
@@ -111,13 +100,11 @@ class DashboardController extends GetxController {
   }
 
   // ── Computed stats ─────────────────────────────────────────────────────────
-  int get activeViolationsCount =>
-      violations.where((v) => v.status == ViolationStatus.active).length;
+  int get activeViolationsCount => violations.where((v) => v.status == ViolationStatus.active).length;
 
   int get activeZones => activeZonesValue.value;
 
-  int get compliantCameras =>
-      compliantCamerasValue.value.clamp(0, activeZones).toInt();
+  int get compliantCameras => compliantCamerasValue.value.clamp(0, activeZones).toInt();
 
   int get complianceRate => complianceRateValue.value.clamp(0, 100).toInt();
 
@@ -127,11 +114,9 @@ class DashboardController extends GetxController {
     return sorted.first;
   }
 
-  int countBySeverity(ViolationSeverity severity) =>
-      violations.where((v) => v.severity == severity).length;
+  int countBySeverity(ViolationSeverity severity) => violations.where((v) => v.severity == severity).length;
 
-  int get onlineCameraCount =>
-      cameras.where((c) => c.status.toLowerCase() == 'online').length;
+  int get onlineCameraCount => cameras.where((c) => c.status.toLowerCase() == 'online').length;
 
   int get enabledCameraCount => cameras.where((c) => c.enabled).length;
 }

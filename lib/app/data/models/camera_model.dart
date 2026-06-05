@@ -1,7 +1,7 @@
 enum CameraStatus { online, offline, error }
 
 class CameraModel {
-  final int id;
+  final dynamic id; // supports both int and String (Firebase IDs)
   final String name;
   final String rtspUrl;
   final String? location;
@@ -35,7 +35,8 @@ class CameraModel {
     }
   }
 
-  bool get recording => false; // cameras stream continuously; no separate recording toggle
+  bool get recording =>
+      false; // cameras stream continuously; no separate recording toggle
 
   factory CameraModel.fromJson(Map<String, dynamic> json) {
     final site = json['site'] as Map<String, dynamic>?;
@@ -45,16 +46,12 @@ class CameraModel {
     final rawStatus = json['status']?.toString();
 
     return CameraModel(
-      id: rawId is int ? rawId : int.tryParse('$rawId') ?? 0,
+      id: rawId, // Keep original ID (String for Firebase, int for backend)
       name: json['name']?.toString() ?? site?['name']?.toString() ?? 'Camera',
       rtspUrl:
-          json['rtsp_url']?.toString() ??
-          json['stream_url']?.toString() ??
-          '',
-      location:
-          json['location']?.toString() ?? site?['address']?.toString(),
-      siteName:
-          json['site_name']?.toString() ?? site?['name']?.toString(),
+          json['rtsp_url']?.toString() ?? json['stream_url']?.toString() ?? '',
+      location: json['location']?.toString() ?? site?['address']?.toString(),
+      siteName: json['site_name']?.toString() ?? site?['name']?.toString(),
       status: rawStatus == null || rawStatus.isEmpty
           ? 'offline'
           : rawStatus.split('.').last.toLowerCase(),
@@ -72,15 +69,15 @@ class CameraModel {
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'name': name,
-        'rtsp_url': rtspUrl,
-        'location': location,
-        'site_name': siteName,
-        'status': status,
-        'enabled': enabled,
-        'fps_target': fpsTarget,
-      };
+    'id': id,
+    'name': name,
+    'rtsp_url': rtspUrl,
+    'location': location,
+    'site_name': siteName,
+    'status': status,
+    'enabled': enabled,
+    'fps_target': fpsTarget,
+  };
 
   CameraModel copyWith({
     int? id,

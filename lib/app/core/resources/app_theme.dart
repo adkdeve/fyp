@@ -58,21 +58,23 @@ class AppThemeData {
 
   // Method to apply system UI style based on theme mode
   void applySystemUIOverlayStyle(ThemeMode themeMode) {
-    if (isDarkMode = WidgetsBinding.instance.window.platformBrightness == Brightness.dark) {
-      SystemChrome.setSystemUIOverlayStyle(
-        SystemUiOverlayStyle.dark.copyWith(
-          statusBarColor: Colors.blue.shade700, // Status bar color for dark theme
-          statusBarIconBrightness: Brightness.light, // Light icons for dark theme
-        ),
-      );
-    } else {
-      SystemChrome.setSystemUIOverlayStyle(
-        SystemUiOverlayStyle.light.copyWith(
-          statusBarColor: Colors.blue.shade700, // Status bar color for light theme
-          statusBarIconBrightness: Brightness.dark, // Dark icons for light theme
-        ),
-      );
-    }
+    final effectiveThemeMode = themeMode == ThemeMode.system
+        ? WidgetsBinding.instance.window.platformBrightness == Brightness.dark
+              ? ThemeMode.dark
+              : ThemeMode.light
+        : themeMode;
+
+    final overlayStyle = effectiveThemeMode == ThemeMode.dark
+        ? SystemUiOverlayStyle.dark.copyWith(
+            statusBarColor: Colors.blue.shade700,
+            statusBarIconBrightness: Brightness.light,
+          )
+        : SystemUiOverlayStyle.light.copyWith(
+            statusBarColor: Colors.blue.shade700,
+            statusBarIconBrightness: Brightness.dark,
+          );
+
+    SystemChrome.setSystemUIOverlayStyle(overlayStyle);
   }
 
   // Light Theme
@@ -94,7 +96,7 @@ class AppThemeData {
       colorScheme: colorScheme,
       primaryColor: colorScheme.primary,
       scaffoldBackgroundColor: colorScheme.background,
-      appBarTheme: base.appBarTheme.copyWith(backgroundColor: Colors.transparent, foregroundColor: black),
+      appBarTheme: base.appBarTheme.copyWith(backgroundColor: Colors.blue.shade700, foregroundColor: white),
       bottomAppBarTheme: base.bottomAppBarTheme.copyWith(color: primary),
       // bottomNavigationBarTheme: base.bottomNavigationBarTheme.copyWith(
       //   backgroundColor: orange,

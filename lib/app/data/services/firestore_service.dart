@@ -13,10 +13,11 @@ import 'auth_service.dart';
 class FirestoreService extends GetxService {
   static const String _tag = 'FirestoreService';
 
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirebaseStorage _storage = FirebaseStorage.instance;
+  late final FirebaseFirestore _firestore;
+  late final FirebaseAuth _auth;
+  late final FirebaseStorage _storage;
   final Logger _logger = Logger();
+  bool _initialized = false;
 
   /// GetX singleton accessor
   static FirestoreService get to => Get.find<FirestoreService>();
@@ -25,11 +26,16 @@ class FirestoreService extends GetxService {
   @override
   Future<FirestoreService> onInit() async {
     try {
-      // Enable offline persistence for real-time updates
+      _firestore = FirebaseFirestore.instance;
+      _auth = FirebaseAuth.instance;
+      _storage = FirebaseStorage.instance;
+
       await _firestore.enableNetwork();
-      _logger.i('[$_tag] Firestore offline persistence enabled');
+      _initialized = true;
+      _logger.i('[$_tag] Firestore initialized successfully');
     } catch (e) {
-      _logger.w('[$_tag] Could not enable network: $e');
+      _logger.w('[$_tag] Firebase initialization error: $e');
+      _initialized = false;
     }
     return this;
   }
@@ -40,10 +46,12 @@ class FirestoreService extends GetxService {
 
   dynamic _handle(dynamic response) {
     if (response is FirebaseException) {
-      _logger.e('[$_tag] Firebase error: ${response.code} - ${response.message}');
+      _logger.e(
+        '[$_tag] Firebase error: ${response.code} - ${response.message}',
+      );
       return {
         'error': response.message ?? 'Firebase error',
-        'code': response.code
+        'code': response.code,
       };
     }
     if (response is Exception) {
@@ -53,41 +61,57 @@ class FirestoreService extends GetxService {
     return response;
   }
 
+  // Safe violation parsing wrapper
+  ViolationModel? _parseViolationSafely(DocumentSnapshot doc) {
+    try {
+      final data = doc.data() as Map<String, dynamic>;
+      return ViolationModel.fromJson(data);
+    } catch (e) {
+      _logger.e('[$_tag] Error parsing violation ${doc.id}: $e');
+      return null;
+    }
+  }
+
   // ──────────────────────────────────────────────────────────────────────────
   // ─ AUTHENTICATION
   // ──────────────────────────────────────────────────────────────────────────
 
-  Future<Map<String, dynamic>> login(String email, String password) async {
+  Future<Map<String, dynamic>> login(String loginId, String password) async {
     try {
-      final userCredential = await _auth.signInWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
+      // Query for officer by login_id
+      final snapshot = await _firestore
+          .collection('officers')
+          .where('loginId', isEqualTo: loginId)
+          .limit(1)
+          .get();
 
-      final user = userCredential.user;
-      if (user == null) {
-        return {'error': 'User is null after login'};
+      if (snapshot.docs.isEmpty) {
+        return {'error': 'Invalid login ID or password'};
       }
 
-      // Get additional user data from Firestore
-      final userDoc = await _firestore.collection('users').doc(user.uid).get();
-      final userData = userDoc.data() ?? {};
-      userData['id'] = user.uid;
-      userData['email'] = user.email;
+      final userDoc = snapshot.docs.first;
+      final userData = userDoc.data();
+      final storedPassword = userData['password'] as String?;
 
-      // Get ID token for API calls if needed
-      final idToken = await user.getIdToken();
+      // Verify password
+      if (storedPassword == null || storedPassword != password) {
+        return {'error': 'Invalid login ID or password'};
+      }
 
-      return {
-        'user': userData,
-        'uid': user.uid,
-        'token': idToken,
-      };
-    } on FirebaseAuthException catch (e) {
-      return _handle({'error': e.message ?? 'Login failed', 'code': e.code});
+      final uid = userDoc.id;
+      final token = _generateToken(uid);
+
+      final userResponse = {...userData, 'id': uid};
+      userResponse.remove('password');
+
+      return {'user': userResponse, 'uid': uid, 'token': token};
     } catch (e) {
       return _handle(e);
     }
+  }
+
+  String _generateToken(String uid) {
+    return 'token_${uid}_${DateTime.now().millisecondsSinceEpoch}';
   }
 
   Future<Map<String, dynamic>> register(
@@ -121,12 +145,12 @@ class FirestoreService extends GetxService {
 
       await _firestore.collection('users').doc(user.uid).set(userData);
 
-      return {
-        'user': userData,
-        'uid': user.uid,
-      };
+      return {'user': userData, 'uid': user.uid};
     } on FirebaseAuthException catch (e) {
-      return _handle({'error': e.message ?? 'Registration failed', 'code': e.code});
+      return _handle({
+        'error': e.message ?? 'Registration failed',
+        'code': e.code,
+      });
     } catch (e) {
       return _handle(e);
     }
@@ -139,7 +163,10 @@ class FirestoreService extends GetxService {
         return {'error': 'Not authenticated'};
       }
 
-      final doc = await _firestore.collection('users').doc(currentUser.uid).get();
+      final doc = await _firestore
+          .collection('users')
+          .doc(currentUser.uid)
+          .get();
       if (!doc.exists) {
         return {'error': 'User document not found'};
       }
@@ -168,7 +195,10 @@ class FirestoreService extends GetxService {
     }
   }
 
-  Future<bool> changePassword(String currentPassword, String newPassword) async {
+  Future<bool> changePassword(
+    String currentPassword,
+    String newPassword,
+  ) async {
     try {
       final currentUser = _auth.currentUser;
       if (currentUser == null || currentUser.email == null) {
@@ -232,19 +262,18 @@ class FirestoreService extends GetxService {
       }
 
       final snapshot = await query.get();
-      return snapshot.docs
-          .map((doc) => CameraModel.fromJson(doc.data() as Map<String, dynamic>))
-          .toList();
+      return snapshot.docs.map((doc) {
+        final data = doc.data() as Map<String, dynamic>;
+        data['id'] = doc.id; // Include the Firestore document ID
+        return CameraModel.fromJson(data);
+      }).toList();
     } catch (e) {
       _logger.e('[$_tag] Get cameras error: $e');
       return [];
     }
   }
 
-  Stream<List<CameraModel>> getCamerasStream({
-    bool? enabled,
-    String? status,
-  }) {
+  Stream<List<CameraModel>> getCamerasStream({bool? enabled, String? status}) {
     var query = _firestore.collection('cameras') as Query;
 
     if (enabled != null) {
@@ -254,14 +283,19 @@ class FirestoreService extends GetxService {
       query = query.where('status', isEqualTo: status);
     }
 
-    return query.snapshots().map((snapshot) {
-      return snapshot.docs
-          .map((doc) => CameraModel.fromJson(doc.data() as Map<String, dynamic>))
-          .toList();
-    }).handleError((e) {
-      _logger.e('[$_tag] Get cameras stream error: $e');
-      return <CameraModel>[];
-    });
+    return query
+        .snapshots()
+        .map((snapshot) {
+          return snapshot.docs.map((doc) {
+            final data = doc.data() as Map<String, dynamic>;
+            data['id'] = doc.id; // Include the Firestore document ID
+            return CameraModel.fromJson(data);
+          }).toList();
+        })
+        .handleError((e) {
+          _logger.e('[$_tag] Get cameras stream error: $e');
+          return <CameraModel>[];
+        });
   }
 
   Future<CameraModel?> createCamera(Map<String, dynamic> data) async {
@@ -320,9 +354,16 @@ class FirestoreService extends GetxService {
       query = query.orderBy('detected_at', descending: true).limit(limit);
 
       final snapshot = await query.get();
-      return snapshot.docs
-          .map((doc) => ViolationModel.fromJson(doc.data() as Map<String, dynamic>))
-          .toList();
+      final violations = <ViolationModel>[];
+
+      for (final doc in snapshot.docs) {
+        final violation = _parseViolationSafely(doc);
+        if (violation != null) {
+          violations.add(violation);
+        }
+      }
+
+      return violations;
     } catch (e) {
       _logger.e('[$_tag] Get violations error: $e');
       return [];
@@ -353,14 +394,26 @@ class FirestoreService extends GetxService {
 
     query = query.orderBy('detected_at', descending: true).limit(limit);
 
-    return query.snapshots().map((snapshot) {
-      return snapshot.docs
-          .map((doc) => ViolationModel.fromJson(doc.data() as Map<String, dynamic>))
-          .toList();
-    }).handleError((e) {
-      _logger.e('[$_tag] Get violations stream error: $e');
-      return <ViolationModel>[];
-    });
+    return query
+        .snapshots()
+        .map((snapshot) {
+          final violations = <ViolationModel>[];
+          for (final doc in snapshot.docs) {
+            try {
+              final data = doc.data() as Map<String, dynamic>;
+              final violation = ViolationModel.fromJson(data);
+              violations.add(violation);
+            } catch (e) {
+              _logger.e('[$_tag] Error parsing violation in stream: $e');
+              // Skip this violation instead of crashing the stream
+            }
+          }
+          return violations;
+        })
+        .handleError((e) {
+          _logger.e('[$_tag] Get violations stream error: $e');
+          return <ViolationModel>[];
+        });
   }
 
   Future<bool> resolveViolation(
@@ -406,7 +459,9 @@ class FirestoreService extends GetxService {
       query = query.orderBy('created_at', descending: true).limit(limit);
 
       final snapshot = await query.get();
-      return snapshot.docs.map((doc) => doc.data() as Map<String, dynamic>).toList();
+      return snapshot.docs
+          .map((doc) => doc.data() as Map<String, dynamic>)
+          .toList();
     } catch (e) {
       _logger.e('[$_tag] Get alerts error: $e');
       return [];
@@ -429,12 +484,17 @@ class FirestoreService extends GetxService {
 
     query = query.orderBy('created_at', descending: true).limit(limit);
 
-    return query.snapshots().map((snapshot) {
-      return snapshot.docs.map((doc) => doc.data() as Map<String, dynamic>).toList();
-    }).handleError((e) {
-      _logger.e('[$_tag] Get alerts stream error: $e');
-      return <Map<String, dynamic>>[];
-    });
+    return query
+        .snapshots()
+        .map((snapshot) {
+          return snapshot.docs
+              .map((doc) => doc.data() as Map<String, dynamic>)
+              .toList();
+        })
+        .handleError((e) {
+          _logger.e('[$_tag] Get alerts stream error: $e');
+          return <Map<String, dynamic>>[];
+        });
   }
 
   Future<bool> markAlertRead(String id) async {

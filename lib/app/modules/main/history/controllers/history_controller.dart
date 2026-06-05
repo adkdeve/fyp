@@ -43,12 +43,8 @@ class HistoryController extends GetxController {
     if (!hasMore.value) return;
     isLoading.value = true;
     try {
-      final raw = await _firestore.getViolations(
-        q: searchTerm.value,
-        limit: _pageSize,
-        offset: _offset,
-      );
-      final fetched = raw.map((e) => ViolationModel.fromJson(e)).toList();
+      final raw = await _firestore.getViolations(q: searchTerm.value, limit: _pageSize, offset: _offset);
+      final fetched = raw;
       if (refresh) {
         violations.assignAll(fetched);
       } else {
@@ -57,11 +53,7 @@ class HistoryController extends GetxController {
       _offset += fetched.length;
       if (fetched.length < _pageSize) hasMore.value = false;
     } catch (e) {
-      Get.snackbar(
-        'Error',
-        'Failed to load violations: $e',
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      Get.snackbar('Error', 'Failed to load violations: $e', snackPosition: SnackPosition.BOTTOM);
     } finally {
       isLoading.value = false;
     }
@@ -79,35 +71,18 @@ class HistoryController extends GetxController {
     return '${_monthAbbr(dateTime.month)} ${dateTime.day}, ${dateTime.year}';
   }
 
-  String formatTime(DateTime dt) =>
-      '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+  String formatTime(DateTime dt) => '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
 
-  String _monthAbbr(int m) => const [
-    '',
-    'Jan',
-    'Feb',
-    'Mar',
-    'Apr',
-    'May',
-    'Jun',
-    'Jul',
-    'Aug',
-    'Sep',
-    'Oct',
-    'Nov',
-    'Dec',
-  ][m];
+  String _monthAbbr(int m) =>
+      const ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][m];
 
   // ── Filtering ──────────────────────────────────────────────────────────────
   List<ViolationModel> get filteredData {
     return violations.where((item) {
       final matchesSearch =
-          item.description.toLowerCase().contains(
-            searchTerm.value.toLowerCase(),
-          ) ||
+          item.description.toLowerCase().contains(searchTerm.value.toLowerCase()) ||
           item.zone.toLowerCase().contains(searchTerm.value.toLowerCase());
-      final matchesFilter =
-          filterType.value == null || item.type == filterType.value;
+      final matchesFilter = filterType.value == null || item.type == filterType.value;
       return matchesSearch && matchesFilter;
     }).toList();
   }
@@ -129,11 +104,7 @@ class HistoryController extends GetxController {
 
   // ── Navigation ─────────────────────────────────────────────────────────────
   void viewViolationDetails(ViolationModel violation) {
-    Get.to(
-      () => const ViolationDetailView(),
-      arguments: violation,
-      binding: ViolationDetailBinding(),
-    );
+    Get.to(() => const ViolationDetailView(), arguments: violation, binding: ViolationDetailBinding());
   }
 
   void applyViolationUpdate(ViolationModel updated) {
@@ -148,22 +119,14 @@ class HistoryController extends GetxController {
 
   Future<void> exportData() async {
     try {
-      final bytes = await _firestore.exportViolations(q: searchTerm.value);
-      final file = File(
-        '${Directory.systemTemp.path}${Platform.pathSeparator}violations_${DateTime.now().millisecondsSinceEpoch}.csv',
-      );
-      await file.writeAsBytes(bytes);
-      Get.snackbar(
-        'Export Ready',
-        'Saved to ${file.path}',
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      final success = await _firestore.exportViolations({'q': searchTerm.value});
+      if (success) {
+        Get.snackbar('Export Ready', 'Violations exported successfully', snackPosition: SnackPosition.BOTTOM);
+      } else {
+        Get.snackbar('Export Failed', 'Could not export violations', snackPosition: SnackPosition.BOTTOM);
+      }
     } catch (e) {
-      Get.snackbar(
-        'Export Failed',
-        e.toString(),
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      Get.snackbar('Export Failed', e.toString(), snackPosition: SnackPosition.BOTTOM);
     }
   }
 }

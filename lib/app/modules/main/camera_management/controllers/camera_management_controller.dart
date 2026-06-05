@@ -35,14 +35,10 @@ class CameraManagementController extends GetxController {
     isLoading.value = true;
     try {
       final raw = await _firestore.getCameras();
-      cameras.assignAll(raw.map((e) => CameraModel.fromJson(e)).toList());
+      cameras.assignAll(raw);
       _main.setCameras(cameras);
     } catch (e) {
-      Get.snackbar(
-        'Error',
-        'Failed to load cameras: $e',
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      Get.snackbar('Error', 'Failed to load cameras: $e', snackPosition: SnackPosition.BOTTOM);
     } finally {
       isLoading.value = false;
     }
@@ -51,13 +47,8 @@ class CameraManagementController extends GetxController {
   List<CameraModel> get filteredCameras {
     return cameras.where((camera) {
       final q = searchTerm.value.toLowerCase();
-      final matchesSearch =
-          q.isEmpty ||
-          camera.name.toLowerCase().contains(q) ||
-          camera.zone.toLowerCase().contains(q);
-      final matchesStatus =
-          statusFilter.value == 'all' ||
-          camera.status.toLowerCase() == statusFilter.value;
+      final matchesSearch = q.isEmpty || camera.name.toLowerCase().contains(q) || camera.zone.toLowerCase().contains(q);
+      final matchesStatus = statusFilter.value == 'all' || camera.status.toLowerCase() == statusFilter.value;
       return matchesSearch && matchesStatus;
     }).toList();
   }
@@ -70,6 +61,7 @@ class CameraManagementController extends GetxController {
     if (searchTerm.value == value) return;
     searchTerm.value = value;
   }
+
   void setStatusFilter(String value) => statusFilter.value = value;
 
   void handleViewFeed(CameraModel camera) {
@@ -81,11 +73,7 @@ class CameraManagementController extends GetxController {
       );
       return;
     }
-    Get.to(
-      () => const CameraFeedView(),
-      arguments: camera,
-      binding: CameraFeedBinding(),
-    );
+    Get.to(() => const CameraFeedView(), arguments: camera, binding: CameraFeedBinding());
   }
 
   Future<void> toggleStatus(int cameraId) async {
@@ -93,22 +81,20 @@ class CameraManagementController extends GetxController {
     if (i == -1) return;
     final current = cameras[i];
     try {
-      final raw = await _firestore.updateCamera(cameraId, {
-        'enabled': !current.enabled,
-      });
-      final updated = CameraModel.fromJson(raw);
-      cameras[i] = updated;
-      cameras.refresh();
-      _main.upsertCamera(updated);
+      final success = await _firestore.updateCamera(cameraId.toString(), {'enabled': !current.enabled});
+      if (success) {
+        final updated = current.copyWith(enabled: !current.enabled);
+        cameras[i] = updated;
+        cameras.refresh();
+        _main.upsertCamera(updated);
+      }
     } catch (e) {
       Get.snackbar('Error', e.toString(), snackPosition: SnackPosition.BOTTOM);
     }
   }
 
-  int get onlineCount =>
-      cameras.where((c) => c.status.toLowerCase() == 'online').length;
+  int get onlineCount => cameras.where((c) => c.status.toLowerCase() == 'online').length;
   int get enabledCount => cameras.where((c) => c.enabled).length;
   int get disabledCount => cameras.where((c) => !c.enabled).length;
-  int get offlineCount =>
-      cameras.where((c) => c.status.toLowerCase() != 'online').length;
+  int get offlineCount => cameras.where((c) => c.status.toLowerCase() != 'online').length;
 }

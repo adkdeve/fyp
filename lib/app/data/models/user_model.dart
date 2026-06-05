@@ -3,6 +3,7 @@ class UserModel {
   final String firstName;
   final String lastName;
   final String email;
+  final String? loginId;
   final String? role;
   final String? country;
   final List<String>? industries;
@@ -23,6 +24,7 @@ class UserModel {
     required this.firstName,
     required this.lastName,
     required this.email,
+    this.loginId,
     this.role,
     this.country,
     this.industries,
@@ -46,11 +48,8 @@ class UserModel {
     // Our backend sends 'name' as a single field; split it for compat.
     final rawName = (json['full_name'] ?? json['name']) as String? ?? '';
     final parts = rawName.split(' ');
-    final first =
-        json['first_name'] as String? ?? (parts.isNotEmpty ? parts.first : '');
-    final last =
-        json['last_name'] as String? ??
-        (parts.length > 1 ? parts.sublist(1).join(' ') : '');
+    final first = json['first_name'] as String? ?? (parts.isNotEmpty ? parts.first : '');
+    final last = json['last_name'] as String? ?? (parts.length > 1 ? parts.sublist(1).join(' ') : '');
     final rawSiteId = json['site_id'];
 
     return UserModel(
@@ -58,11 +57,10 @@ class UserModel {
       firstName: first,
       lastName: last,
       email: json['email'] as String? ?? '',
+      loginId: json['login_id'] as String?,
       role: json['role'] as String?,
       country: json['country']?.toString(),
-      industries: json['industries'] != null
-          ? List<String>.from(json['industries'] as List)
-          : null,
+      industries: json['industries'] != null ? List<String>.from(json['industries'] as List) : null,
       status: json['status'] as int?,
       dob: json['dob']?.toString(),
       gender: json['gender']?.toString(),
@@ -84,6 +82,7 @@ class UserModel {
     'first_name': firstName,
     'last_name': lastName,
     'email': email,
+    'login_id': loginId,
     'role': role,
     'country': country,
     'industries': industries,
