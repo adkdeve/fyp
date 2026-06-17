@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 class AppConfig {
   // ───── App Info ─────
-  static const String appName = 'Construction Site Safety';
+  static const String appName = 'SafeSite AI';
   static const String version = '1.0.0';
   static const String buildNumber = '100';
   static const bool isDebugMode = false;

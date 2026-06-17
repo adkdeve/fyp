@@ -14,7 +14,7 @@ class AppBinding extends Bindings {
     Get.put<AuthService>(AuthService(), permanent: true);
     Get.put<FirestoreService>(FirestoreService(), permanent: true);
     Get.put<SafetyApiService>(SafetyApiService(), permanent: true);
-    // Get.put<WebSocketService>(WebSocketService(), permanent: true);
+    Get.put<WebSocketService>(WebSocketService(), permanent: true);
     Get.put<Repository>(Repository(), permanent: true);
     Get.put<Logger>(Logger(), permanent: true);
     Get.put<MyLoading>(MyLoading(), permanent: true);

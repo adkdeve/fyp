@@ -46,6 +46,7 @@ dependencies:
   lucide_icons_flutter: ^3.1.6
   fl_chart: ^0.66.2
   web_socket_channel: ^3.0.1
+  flutter_launcher_icons: ^0.14.4
 
 dev_dependencies:
   flutter_lints: ^6.0.0
@@ -55,10 +56,18 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
-    - assets/images/
     - assets/icons/
-    - assets/icons/nav/
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/icons/app_logo.png"
+  min_sdk_android: 21
 
 flutter_native_splash:
-  color: "#0C192B"
-  image: assets/images/logo.png
+  color: "#ffffff"
+  image: assets/icons/splash_logo.png
+  android: true
+  ios: true
+  android_gravity: center
+  ios_content_mode: scaleAspectFit
