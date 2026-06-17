@@ -1,7 +1,13 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:http/http.dart' as http;
+import 'package:construction_safety/utils/helpers/snackbar.dart';
 
+import '../../../../core/values/apis_url.dart';
 import '../../../../data/models/camera_model.dart';
+import '../../../../data/services/auth_service.dart';
 import '../../../../data/services/firestore_service.dart';
 import '../../camera_feed/bindings/camera_feed_binding.dart';
 import '../../camera_feed/views/camera_feed_view.dart';
@@ -9,7 +15,9 @@ import '../../controllers/main_controller.dart';
 
 class CameraManagementController extends GetxController {
   final FirestoreService _firestore = FirestoreService.to;
+  final AuthService _auth = Get.find<AuthService>();
   final MainController _main = Get.find<MainController>();
+  final http.Client _client = http.Client();
 
   final cameras = <CameraModel>[].obs;
   final isLoading = false.obs;
@@ -28,17 +36,20 @@ class CameraManagementController extends GetxController {
   void onClose() {
     searchController.removeListener(_handleSearchChanged);
     searchController.dispose();
+    _client.close();
     super.onClose();
   }
 
   Future<void> loadCameras() async {
     isLoading.value = true;
     try {
-      final raw = await _firestore.getCameras();
+      // Web jaisा: sirf officer ke assigned sites ki cameras
+      final siteIds = await _auth.getUserSiteIds();
+      final raw = await _firestore.getCameras(siteIds: siteIds);
       cameras.assignAll(raw);
       _main.setCameras(cameras);
     } catch (e) {
-      Get.snackbar('Error', 'Failed to load cameras: $e', snackPosition: SnackPosition.BOTTOM);
+      SnackBarUtils.showError('Failed to load cameras: $e', title: 'Error');
     } finally {
       isLoading.value = false;
     }
@@ -66,31 +77,69 @@ class CameraManagementController extends GetxController {
 
   void handleViewFeed(CameraModel camera) {
     if (!camera.enabled) {
-      Get.snackbar(
-        'Camera Disabled',
+      SnackBarUtils.showError(
         'Enable this camera to start monitoring its feed.',
-        snackPosition: SnackPosition.BOTTOM,
+        title: 'Camera Disabled',
       );
       return;
     }
     Get.to(() => const CameraFeedView(), arguments: camera, binding: CameraFeedBinding());
   }
 
-  Future<void> toggleStatus(int cameraId) async {
-    final i = cameras.indexWhere((c) => c.id == cameraId);
+  Future<void> toggleStatus(dynamic cameraId) async {
+    final id = cameraId.toString();
+    // Firebase IDs string hote hain — toString se compare karo (int bug fix)
+    final i = cameras.indexWhere((c) => c.id.toString() == id);
     if (i == -1) return;
     final current = cameras[i];
+    final newEnabled = !current.enabled;
     try {
-      final success = await _firestore.updateCamera(cameraId.toString(), {'enabled': !current.enabled});
-      if (success) {
-        final updated = current.copyWith(enabled: !current.enabled);
-        cameras[i] = updated;
-        cameras.refresh();
-        _main.upsertCamera(updated);
+      final success = await _firestore.updateCamera(id, {'enabled': newEnabled});
+      if (!success) return;
+
+      final updated = current.copyWith(enabled: newEnabled);
+      cameras[i] = updated;
+      cameras.refresh();
+      _main.upsertCamera(updated);
+
+      // Backend camera worker ko actually start/stop karo (web jaisा)
+      if (newEnabled) {
+        await _startCamera(id, current.rtspUrl);
+        SnackBarUtils.showSnackBar('Live feed for ${current.name} is now running.', title: 'Camera Started');
+      } else {
+        await _stopCamera(id);
+        SnackBarUtils.showSnackBar('Live feed for ${current.name} stopped.', title: 'Camera Stopped');
       }
     } catch (e) {
-      Get.snackbar('Error', e.toString(), snackPosition: SnackPosition.BOTTOM);
+      SnackBarUtils.showError(e.toString(), title: 'Error');
     }
+  }
+
+  /// Backend par camera worker start (inference + streaming).
+  Future<void> _startCamera(String id, String rtspUrl) async {
+    try {
+      await _client
+          .post(
+            Uri.parse(ApisUrl.cameraStart),
+            headers: {'Content-Type': 'application/json', 'bypass-tunnel-reminder': 'true'},
+            body: jsonEncode({'camera_id': id, 'rtsp_url': rtspUrl}),
+          )
+          .timeout(const Duration(seconds: 10));
+    } catch (_) {
+      // Non-fatal — Firestore flag already update ho chuka hai
+    }
+  }
+
+  /// Backend par camera worker stop.
+  Future<void> _stopCamera(String id) async {
+    try {
+      await _client
+          .post(
+            Uri.parse(ApisUrl.cameraStop(id)),
+            headers: {'bypass-tunnel-reminder': 'true'},
+          )
+          .timeout(const Duration(seconds: 10));
+    } catch (_) {}
   }
 
   int get onlineCount => cameras.where((c) => c.status.toLowerCase() == 'online').length;

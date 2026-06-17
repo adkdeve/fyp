@@ -1,14 +1,15 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:construction_safety/utils/helpers/snackbar.dart';
 import '../../../../data/models/violation_model.dart';
+import '../../../../data/services/auth_service.dart';
 import '../../../../data/services/firestore_service.dart';
 import '../../violation_detail/bindings/violation_detail_binding.dart';
 import '../../violation_detail/views/violation_detail_view.dart';
 
 class HistoryController extends GetxController {
   final FirestoreService _firestore = FirestoreService.to;
+  final AuthService _auth = Get.find<AuthService>();
 
   final RxString searchTerm = ''.obs;
   final Rx<ViolationType?> filterType = Rx<ViolationType?>(null);
@@ -16,15 +17,25 @@ class HistoryController extends GetxController {
   final isLoading = false.obs;
   final searchController = TextEditingController();
 
+  // 🟢 Scroll Controller for Pagination
+  final ScrollController scrollController = ScrollController();
+
   // Pagination
   int _offset = 0;
   static const int _pageSize = 50;
   final hasMore = true.obs;
 
+  // Cache today's date to avoid creating instances inside the loop
+  late DateTime _today;
+
   @override
   void onInit() {
     super.onInit();
+    _updateTodayDate();
     searchController.addListener(_handleSearchChanged);
+
+    // 🟢 Setup Scroll Listener for Infinite Scroll
+    scrollController.addListener(_onScroll);
     loadHistoryData();
   }
 
@@ -32,19 +43,53 @@ class HistoryController extends GetxController {
   void onClose() {
     searchController.removeListener(_handleSearchChanged);
     searchController.dispose();
+    scrollController.dispose(); // 🟢 Dispose scroll controller
     super.onClose();
+  }
+
+  void _updateTodayDate() {
+    final now = DateTime.now();
+    _today = DateTime(now.year, now.month, now.day);
+  }
+
+  void _onScroll() {
+    // Agar user bottom se 200 pixels door ho toh mazeed data load karo
+    if (scrollController.position.pixels >= scrollController.position.maxScrollExtent - 200) {
+      if (!isLoading.value && hasMore.value) {
+        loadMore();
+      }
+    }
+  }
+
+  Future<List<String>?> _getSiteIds() async {
+    final siteIds = await _auth.getUserSiteIds();
+    return siteIds == null || siteIds.isEmpty ? null : siteIds;
+  }
+
+  Future<List<String>?> _getCameraIdsForSites(List<String>? siteIds) async {
+    if (siteIds == null || siteIds.isEmpty) return null;
+    final cameraIds = await _firestore.getCameraIdsBySiteIds(siteIds);
+    return cameraIds.isEmpty ? null : cameraIds;
   }
 
   Future<void> loadHistoryData({bool refresh = true}) async {
     if (refresh) {
       _offset = 0;
       hasMore.value = true;
+      _updateTodayDate(); // Refresh today's date context
     }
-    if (!hasMore.value) return;
+    if (!hasMore.value || (isLoading.value && !refresh)) return;
+
     isLoading.value = true;
     try {
-      final raw = await _firestore.getViolations(q: searchTerm.value, limit: _pageSize, offset: _offset);
-      final fetched = raw;
+      final siteIds = await _getSiteIds();
+      final cameraIds = await _getCameraIdsForSites(siteIds);
+      final fetched = await _firestore.getViolations(
+        q: searchTerm.value,
+        cameraIds: cameraIds,
+        limit: _pageSize,
+        offset: _offset,
+      );
       if (refresh) {
         violations.assignAll(fetched);
       } else {
@@ -53,7 +98,7 @@ class HistoryController extends GetxController {
       _offset += fetched.length;
       if (fetched.length < _pageSize) hasMore.value = false;
     } catch (e) {
-      Get.snackbar('Error', 'Failed to load violations: $e', snackPosition: SnackPosition.BOTTOM);
+      SnackBarUtils.showError('Failed to load violations: $e', title: 'Error');
     } finally {
       isLoading.value = false;
     }
@@ -61,13 +106,11 @@ class HistoryController extends GetxController {
 
   Future<void> loadMore() => loadHistoryData(refresh: false);
 
-  // ── Date helpers ───────────────────────────────────────────────────────────
+  // ── Optimized Date helpers (No more allocation loops) ──────────────────────
   String formatDate(DateTime dateTime) {
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
     final day = DateTime(dateTime.year, dateTime.month, dateTime.day);
-    if (day == today) return 'Today';
-    if (day == today.subtract(const Duration(days: 1))) return 'Yesterday';
+    if (day == _today) return 'Today';
+    if (day == _today.subtract(const Duration(days: 1))) return 'Yesterday';
     return '${_monthAbbr(dateTime.month)} ${dateTime.day}, ${dateTime.year}';
   }
 
@@ -78,31 +121,35 @@ class HistoryController extends GetxController {
 
   // ── Filtering ──────────────────────────────────────────────────────────────
   List<ViolationModel> get filteredData {
+    if (searchTerm.value.isEmpty && filterType.value == null) return violations;
+
+    final searchLower = searchTerm.value.toLowerCase();
     return violations.where((item) {
       final matchesSearch =
-          item.description.toLowerCase().contains(searchTerm.value.toLowerCase()) ||
-          item.zone.toLowerCase().contains(searchTerm.value.toLowerCase());
+          searchLower.isEmpty ||
+          item.description.toLowerCase().contains(searchLower) ||
+          item.zone.toLowerCase().contains(searchLower);
       final matchesFilter = filterType.value == null || item.type == filterType.value;
       return matchesSearch && matchesFilter;
     }).toList();
   }
 
   void _handleSearchChanged() {
+    // Adding a slight debounce or check to prevent spamming
     setSearchTerm(searchController.text);
   }
 
+  // Search aur type filter ab client-side hote hain (filteredData getter mein).
+  // getViolations() server-side q/type ignore karta hai, isliye re-fetch bekaar tha.
   void setSearchTerm(String value) {
-    if (searchTerm.value == value) return;
     searchTerm.value = value;
-    loadHistoryData();
   }
 
   void setFilterType(ViolationType? type) {
     filterType.value = type;
-    loadHistoryData();
   }
 
-  // ── Navigation ─────────────────────────────────────────────────────────────
+  // Navigation & Export methods remain the same...
   void viewViolationDetails(ViolationModel violation) {
     Get.to(() => const ViolationDetailView(), arguments: violation, binding: ViolationDetailBinding());
   }
@@ -121,12 +168,12 @@ class HistoryController extends GetxController {
     try {
       final success = await _firestore.exportViolations({'q': searchTerm.value});
       if (success) {
-        Get.snackbar('Export Ready', 'Violations exported successfully', snackPosition: SnackPosition.BOTTOM);
+        SnackBarUtils.showSnackBar('Violations exported successfully', title: 'Export Ready');
       } else {
-        Get.snackbar('Export Failed', 'Could not export violations', snackPosition: SnackPosition.BOTTOM);
+        SnackBarUtils.showError('Could not export violations', title: 'Export Failed');
       }
     } catch (e) {
-      Get.snackbar('Export Failed', e.toString(), snackPosition: SnackPosition.BOTTOM);
+      SnackBarUtils.showError(e.toString(), title: 'Export Failed');
     }
   }
 }

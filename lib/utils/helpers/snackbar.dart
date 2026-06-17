@@ -1,10 +1,44 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../common/widgets/my_text.dart';
 
 class SnackBarUtils {
-  static showError(String message, [int duration = 2]) {
+  // ---------------------------------------------------------------------------
+  // Console logging helper
+  // ---------------------------------------------------------------------------
+  // Har error/success ko console par spacing ke sath print karta hai taake
+  // developer easily read kar sake.
+  static void _log({
+    required String level, // 'ERROR' ya 'SUCCESS'
+    required String emoji,
+    String? title,
+    required String message,
+  }) {
+    if (!kDebugMode) return;
+
+    const String line =
+        '==============================================================';
+
+    debugPrint('');
+    debugPrint(line);
+    debugPrint('  $emoji  $level');
+    debugPrint(line);
+    if (title != null && title.trim().isNotEmpty) {
+      debugPrint('  Title   : $title');
+    }
+    debugPrint('  Message : $message');
+    debugPrint(line);
+    debugPrint('');
+  }
+
+  // ---------------------------------------------------------------------------
+  // Error snackbar (red)
+  // ---------------------------------------------------------------------------
+  static showError(String message, {String? title, int duration = 2}) {
+    _log(level: 'ERROR', emoji: '❌', title: title, message: message);
+
     Get.showSnackbar(
       GetSnackBar(
         snackPosition: SnackPosition.TOP,
@@ -26,13 +60,30 @@ class SnackBarUtils {
                   ),
                   const SizedBox(width: 8),
                   Expanded(
-                    child: MyText(
-                      softWrap: true,
-                      text: message,
-                      fontSize: 13,
-                      textAlign: TextAlign.left,
-                      fontWeight: FontWeight.w400,
-                      color: Colors.white,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (title != null && title.trim().isNotEmpty) ...[
+                          MyText(
+                            softWrap: true,
+                            text: title,
+                            fontSize: 13,
+                            textAlign: TextAlign.left,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                          ),
+                          const SizedBox(height: 2),
+                        ],
+                        MyText(
+                          softWrap: true,
+                          text: message,
+                          fontSize: 13,
+                          textAlign: TextAlign.left,
+                          fontWeight: FontWeight.w400,
+                          color: Colors.white,
+                        ),
+                      ],
                     ),
                   ),
                 ],
@@ -53,15 +104,18 @@ class SnackBarUtils {
     );
   }
 
-  static showSnackBar(String message, [int duration = 2]) {
+  // ---------------------------------------------------------------------------
+  // Success snackbar (green)
+  // ---------------------------------------------------------------------------
+  static showSnackBar(String message, {String? title, int duration = 2}) {
+    _log(level: 'SUCCESS', emoji: '✅', title: title, message: message);
+
     Get.showSnackbar(
       GetSnackBar(
         snackPosition: SnackPosition.TOP,
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 50),
         duration: Duration(seconds: duration),
-
-        // isDismissible: false,
         backgroundColor: Colors.green,
         borderRadius: 12,
         messageText: Row(
@@ -77,13 +131,30 @@ class SnackBarUtils {
                   ),
                   const SizedBox(width: 8),
                   Expanded(
-                    child: MyText(
-                      softWrap: true,
-                      text: message,
-                      fontSize: 13,
-                      textAlign: TextAlign.left,
-                      fontWeight: FontWeight.w400,
-                      color: Colors.black,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (title != null && title.trim().isNotEmpty) ...[
+                          MyText(
+                            softWrap: true,
+                            text: title,
+                            fontSize: 13,
+                            textAlign: TextAlign.left,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.black,
+                          ),
+                          const SizedBox(height: 2),
+                        ],
+                        MyText(
+                          softWrap: true,
+                          text: message,
+                          fontSize: 13,
+                          textAlign: TextAlign.left,
+                          fontWeight: FontWeight.w400,
+                          color: Colors.black,
+                        ),
+                      ],
                     ),
                   ),
                 ],
@@ -104,10 +175,11 @@ class SnackBarUtils {
         ),
       ),
     );
-
   }
 
   static showScaffoldSnackBar(BuildContext buildContext, String message) {
+    _log(level: 'SUCCESS', emoji: '✅', message: message);
+
     ScaffoldMessenger.of(
       buildContext,
     ).showSnackBar(SnackBar(content: Text(message)));

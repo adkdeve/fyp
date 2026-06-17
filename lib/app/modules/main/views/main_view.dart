@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:construction_safety/app/core/extensions/theme_extensions.dart';
 
 import '../alerts/views/alerts_view.dart';
 import '../analytics/views/analytics_view.dart';
@@ -20,7 +21,7 @@ class MainView extends GetView<MainController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF9FAFB),
+      backgroundColor: context.scaffoldBg,
       body: SafeArea(
         child: Obx(() => _buildCurrentScreen()),
       ),
@@ -28,16 +29,16 @@ class MainView extends GetView<MainController> {
         if (!controller.showBottomNav) return const SizedBox.shrink();
 
         return Container(
-          decoration: const BoxDecoration(
-            border: Border(top: BorderSide(color: Color(0xFFE5E7EB))),
+          decoration: BoxDecoration(
+            border: Border(top: BorderSide(color: context.borderColor)),
           ),
           child: BottomNavigationBar(
             currentIndex: _getCurrentIndex(),
             onTap: _onBottomNavTap,
             type: BottomNavigationBarType.fixed,
-            backgroundColor: Colors.white,
+            backgroundColor: context.cardBg,
             selectedItemColor: const Color(0xFF2563EB),
-            unselectedItemColor: const Color(0xFF6B7280),
+            unselectedItemColor: context.textSecondary,
             selectedLabelStyle: const TextStyle(fontSize: 12),
             unselectedLabelStyle: const TextStyle(fontSize: 12),
             items: [

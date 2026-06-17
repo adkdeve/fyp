@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
+import 'package:construction_safety/app/core/extensions/theme_extensions.dart';
 import '../controllers/login_controller.dart';
 
 class LoginView extends GetView<LoginController> {
@@ -12,13 +13,9 @@ class LoginView extends GetView<LoginController> {
   @override
   Widget build(BuildContext context) {
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.light.copyWith(
-        statusBarIconBrightness: Brightness.light,
-        statusBarBrightness: Brightness.dark,
-        statusBarColor: const Color(0xFF0C192B),
-      ),
+      value: AppColor.statusBar,
       child: Scaffold(
-        backgroundColor: const Color(0xFF0C192B),
+        backgroundColor: AppColor.scaffoldBg,
         body: SafeArea(
           child: Center(
             child: SingleChildScrollView(
@@ -34,12 +31,12 @@ class LoginView extends GetView<LoginController> {
                     Text(
                       'Construction Safety',
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.white, fontSize: 24.sp, fontWeight: FontWeight.bold),
+                      style: TextStyle(color: AppColor.textPrimary, fontSize: 24.sp, fontWeight: FontWeight.bold),
                     ),
                     Text(
                       'Supervisor Portal',
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.white54, fontSize: 14.sp),
+                      style: TextStyle(color: AppColor.textSecondary, fontSize: 14.sp),
                     ),
                     SizedBox(height: 40.h),
 
@@ -49,7 +46,7 @@ class LoginView extends GetView<LoginController> {
                     TextFormField(
                       controller: controller.emailCtrl,
                       keyboardType: TextInputType.text,
-                      style: const TextStyle(color: Colors.white),
+                      style: TextStyle(color: AppColor.textPrimary),
                       decoration: _inputDecoration(hint: 'so-spidermon-1359', icon: Icons.person_outlined),
                       validator: (v) {
                         if (v == null || v.trim().isEmpty) return 'Login ID is required';
@@ -65,7 +62,7 @@ class LoginView extends GetView<LoginController> {
                       () => TextFormField(
                         controller: controller.passwordCtrl,
                         obscureText: controller.obscurePassword.value,
-                        style: const TextStyle(color: Colors.white),
+                        style: TextStyle(color: AppColor.textPrimary),
                         decoration: _inputDecoration(
                           hint: '••••••••',
                           icon: Icons.lock_outlined,
@@ -74,7 +71,7 @@ class LoginView extends GetView<LoginController> {
                               controller.obscurePassword.value
                                   ? Icons.visibility_off_outlined
                                   : Icons.visibility_outlined,
-                              color: Colors.white54,
+                              color: AppColor.textSecondary,
                               size: 20.r,
                             ),
                             onPressed: controller.togglePasswordVisibility,
@@ -123,25 +120,25 @@ class LoginView extends GetView<LoginController> {
 
   Widget _buildLabel(String text) => Text(
     text,
-    style: TextStyle(color: Colors.white70, fontSize: 13.sp),
+    style: TextStyle(color: AppColor.textSecondary, fontSize: 13.sp),
   );
 
   InputDecoration _inputDecoration({required String hint, required IconData icon, Widget? suffix}) {
     return InputDecoration(
       hintText: hint,
-      hintStyle: const TextStyle(color: Colors.white30),
-      prefixIcon: Icon(icon, color: Colors.white54, size: 20),
+      hintStyle: TextStyle(color: AppColor.textTertiary),
+      prefixIcon: Icon(icon, color: AppColor.textSecondary, size: 20),
       suffixIcon: suffix,
       filled: true,
-      fillColor: const Color(0xFF1E2D3D),
+      fillColor: AppColor.subtleBg,
       contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10.r),
-        borderSide: const BorderSide(color: Color(0xFF2D3F50)),
+        borderSide: BorderSide(color: AppColor.borderColor),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10.r),
-        borderSide: const BorderSide(color: Color(0xFF2D3F50)),
+        borderSide: BorderSide(color: AppColor.borderColor),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10.r),

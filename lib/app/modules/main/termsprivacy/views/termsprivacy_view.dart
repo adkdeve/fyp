@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:construction_safety/app/core/extensions/theme_extensions.dart';
+import 'package:construction_safety/common/widgets/app_header.dart';
 import '../controllers/termsprivacy_controller.dart';
 
 class TermsPrivacyView extends GetView<TermsPrivacyController> {
@@ -9,18 +11,38 @@ class TermsPrivacyView extends GetView<TermsPrivacyController> {
   @override
   Widget build(BuildContext context) {
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.dark.copyWith(
-        statusBarIconBrightness: Brightness.dark,
-        statusBarBrightness: Brightness.light,
-        statusBarColor: Colors.transparent,
-      ),
+      value: AppColor.statusBar,
       child: Scaffold(
-        backgroundColor: const Color(0xFFF9FAFB), // bg-gray-50
+        backgroundColor: AppColor.scaffoldBg,
         body: SafeArea(
           child: Column(
             children: [
-              // Header
-              _buildHeader(),
+              AppHeader(
+                title: 'Legal',
+                subtitle: 'Terms of Service & Privacy Policy',
+                showBack: true,
+                bottom: Obx(
+                  () => Row(
+                    children: [
+                      Expanded(
+                        child: _buildTabButton(
+                          text: 'Terms of Service',
+                          isActive: controller.activeTab.value == 'terms',
+                          onTap: () => controller.switchTab('terms'),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _buildTabButton(
+                          text: 'Privacy Policy',
+                          isActive: controller.activeTab.value == 'privacy',
+                          onTap: () => controller.switchTab('privacy'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
               // Content
               Expanded(
                 child: SingleChildScrollView(
@@ -42,70 +64,13 @@ class TermsPrivacyView extends GetView<TermsPrivacyController> {
     );
   }
 
-  Widget _buildHeader() {
-    return Container(
-      width: double.infinity,
-      color: Colors.white,
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        children: [
-          // Back button and title
-          Row(
-            children: [
-              IconButton(
-                onPressed: () => Get.back(),
-                icon: const Icon(Icons.arrow_back, color: Color(0xFF6B7280)),
-              ),
-              const SizedBox(width: 8),
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Legal',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Color(0xFF111827)),
-                    ),
-                    Text('Terms of Service & Privacy Policy', style: TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          // Tabs
-          Obx(() {
-            return Row(
-              children: [
-                Expanded(
-                  child: _buildTabButton(
-                    text: 'Terms of Service',
-                    isActive: controller.activeTab.value == 'terms',
-                    onTap: () => controller.switchTab('terms'),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: _buildTabButton(
-                    text: 'Privacy Policy',
-                    isActive: controller.activeTab.value == 'privacy',
-                    onTap: () => controller.switchTab('privacy'),
-                  ),
-                ),
-              ],
-            );
-          }),
-        ],
-      ),
-    );
-  }
-
   Widget _buildTabButton({required String text, required bool isActive, required VoidCallback onTap}) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
         decoration: BoxDecoration(
-          color: isActive ? const Color(0xFFDBEAFE) : const Color(0xFFF3F4F6),
+          color: isActive ? const Color(0xFFDBEAFE) : AppColor.subtleBg,
           borderRadius: BorderRadius.circular(8),
         ),
         child: Text(
@@ -113,7 +78,7 @@ class TermsPrivacyView extends GetView<TermsPrivacyController> {
           textAlign: TextAlign.center,
           style: TextStyle(
             fontSize: 14,
-            color: isActive ? const Color(0xFF1D4ED8) : const Color(0xFF6B7280),
+            color: isActive ? const Color(0xFF1D4ED8) : AppColor.textSecondary,
             fontWeight: FontWeight.w500,
           ),
         ),
@@ -125,9 +90,9 @@ class TermsPrivacyView extends GetView<TermsPrivacyController> {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColor.cardBg,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
+        border: Border.all(color: AppColor.borderColor),
       ),
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -199,9 +164,9 @@ class TermsPrivacyView extends GetView<TermsPrivacyController> {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColor.cardBg,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
+        border: Border.all(color: AppColor.borderColor),
       ),
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -320,9 +285,9 @@ class TermsPrivacyView extends GetView<TermsPrivacyController> {
             children: [
               Text(
                 title,
-                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: Color(0xFF111827)),
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: AppColor.textPrimary),
               ),
-              Text(subtitle, style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
+              Text(subtitle, style: TextStyle(fontSize: 12, color: AppColor.textSecondary)),
             ],
           ),
         ),
@@ -336,10 +301,10 @@ class TermsPrivacyView extends GetView<TermsPrivacyController> {
       children: [
         Text(
           title,
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Color(0xFF111827)),
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColor.textPrimary),
         ),
         const SizedBox(height: 8),
-        Text(content, style: const TextStyle(fontSize: 14, color: Color(0xFF6B7280), height: 1.5)),
+        Text(content, style: TextStyle(fontSize: 14, color: AppColor.textSecondary, height: 1.5)),
         if (bulletPoints != null) ...[
           const SizedBox(height: 8),
           Column(
@@ -350,10 +315,10 @@ class TermsPrivacyView extends GetView<TermsPrivacyController> {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('•', style: TextStyle(fontSize: 14, color: Color(0xFF6B7280))),
+                    Text('•', style: TextStyle(fontSize: 14, color: AppColor.textSecondary)),
                     const SizedBox(width: 8),
                     Expanded(
-                      child: Text(point, style: const TextStyle(fontSize: 14, color: Color(0xFF6B7280), height: 1.5)),
+                      child: Text(point, style: TextStyle(fontSize: 14, color: AppColor.textSecondary, height: 1.5)),
                     ),
                   ],
                 ),
@@ -377,15 +342,15 @@ class TermsPrivacyView extends GetView<TermsPrivacyController> {
       children: [
         Row(
           children: [
-            if (icon != null) ...[Icon(icon, size: 16, color: const Color(0xFF111827)), const SizedBox(width: 8)],
+            if (icon != null) ...[Icon(icon, size: 16, color: AppColor.textPrimary), const SizedBox(width: 8)],
             Text(
               title,
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Color(0xFF111827)),
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColor.textPrimary),
             ),
           ],
         ),
         const SizedBox(height: 8),
-        Text(content, style: const TextStyle(fontSize: 14, color: Color(0xFF6B7280), height: 1.5)),
+        Text(content, style: TextStyle(fontSize: 14, color: AppColor.textSecondary, height: 1.5)),
         if (bulletPoints != null) ...[
           const SizedBox(height: 8),
           Column(
@@ -396,10 +361,10 @@ class TermsPrivacyView extends GetView<TermsPrivacyController> {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('•', style: TextStyle(fontSize: 14, color: Color(0xFF6B7280))),
+                    Text('•', style: TextStyle(fontSize: 14, color: AppColor.textSecondary)),
                     const SizedBox(width: 8),
                     Expanded(
-                      child: Text(point, style: const TextStyle(fontSize: 14, color: Color(0xFF6B7280), height: 1.5)),
+                      child: Text(point, style: TextStyle(fontSize: 14, color: AppColor.textSecondary, height: 1.5)),
                     ),
                   ],
                 ),
@@ -422,16 +387,16 @@ class TermsPrivacyView extends GetView<TermsPrivacyController> {
         margin: const EdgeInsets.only(top: 16),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColor.cardBg,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFFE5E7EB)),
+          border: Border.all(color: AppColor.borderColor),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               'By using this application, you acknowledge that you have read and understood our ${controller.activeTab.value == 'terms' ? 'Terms of Service' : 'Privacy Policy'}.',
-              style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
+              style: TextStyle(fontSize: 12, color: AppColor.textSecondary),
             ),
             const SizedBox(height: 12),
             SizedBox(

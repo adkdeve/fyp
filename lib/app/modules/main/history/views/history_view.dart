@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import '../../../../../common/widgets/my_text.dart';
+import 'package:construction_safety/app/core/extensions/theme_extensions.dart';
+import 'package:construction_safety/common/widgets/app_header.dart';
 import '../../../../data/models/violation_model.dart';
 import '../controllers/history_controller.dart';
 
@@ -11,19 +13,33 @@ class HistoryView extends GetView<HistoryController> {
   @override
   Widget build(BuildContext context) {
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.dark.copyWith(
-        statusBarIconBrightness: Brightness.dark,
-        statusBarBrightness: Brightness.light,
-        statusBarColor: Colors.transparent,
-      ),
+      value: AppColor.statusBar,
       child: SafeArea(
         child: Scaffold(
-          backgroundColor: Colors.grey[50],
+          backgroundColor: AppColor.scaffoldBg,
           body: Column(
             children: [
-              // Header Section
-              _buildHeader(),
-              // Content Section
+              AppHeader(
+                title: 'Violation History',
+                subtitle: 'Complete safety incident log',
+                actions: [
+                  IconButton(
+                    onPressed: controller.exportData,
+                    style: IconButton.styleFrom(
+                      backgroundColor: Colors.blue[600],
+                      foregroundColor: Colors.white,
+                    ),
+                    icon: const Icon(Icons.download_rounded, size: 20),
+                  ),
+                ],
+                bottom: Column(
+                  children: [
+                    _buildSearchBar(),
+                    const SizedBox(height: 12),
+                    _buildFilterChips(),
+                  ],
+                ),
+              ),
               Expanded(child: _buildContent()),
             ],
           ),
@@ -32,62 +48,17 @@ class HistoryView extends GetView<HistoryController> {
     );
   }
 
-  Widget _buildHeader() {
-    return Container(
-      color: Colors.white,
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        children: [
-          // Title and Export Button
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Violation History',
-                    style: Get.textTheme.titleLarge?.copyWith(color: Colors.grey[900], fontWeight: FontWeight.w600),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Complete safety incident log',
-                    style: Get.textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
-                  ),
-                ],
-              ),
-              IconButton(
-                onPressed: controller.exportData,
-                style: IconButton.styleFrom(
-                  backgroundColor: Colors.blue[600],
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.all(2),
-                ),
-                icon: const Icon(Icons.download_rounded),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          // Search Bar
-          _buildSearchBar(),
-          const SizedBox(height: 12),
-          // Filter Chips
-          _buildFilterChips(),
-        ],
-      ),
-    );
-  }
-
   Widget _buildSearchBar() {
     return TextField(
       controller: controller.searchController,
+      onChanged: controller.setSearchTerm,
       decoration: InputDecoration(
         hintText: 'Search violations...',
         prefixIcon: const Icon(Icons.search, size: 20, color: Colors.grey),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.grey),
+          borderSide: BorderSide(color: AppColor.borderColor),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
@@ -124,9 +95,9 @@ class HistoryView extends GetView<HistoryController> {
         selected: isSelected,
         showCheckmark: false,
         onSelected: (_) => controller.setFilterType(isSelected ? null : type),
-        backgroundColor: Colors.grey[100],
+        backgroundColor: AppColor.subtleBg,
         selectedColor: Colors.blue[100],
-        labelStyle: TextStyle(color: isSelected ? Colors.blue[700] : Colors.grey[600], fontSize: 12),
+        labelStyle: TextStyle(color: isSelected ? Colors.blue[700] : AppColor.textSecondary, fontSize: 12),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         side: BorderSide.none,
       );
@@ -137,23 +108,37 @@ class HistoryView extends GetView<HistoryController> {
     return Obx(() {
       final filteredData = controller.filteredData;
 
-      if (filteredData.isEmpty) {
+      if (filteredData.isEmpty && !controller.isLoading.value) {
         return _buildEmptyState();
       }
 
+      // 🟢 Attached ScrollController and added Loading Indicator at the bottom
       return ListView.builder(
+        controller: controller.scrollController,
         padding: const EdgeInsets.all(16),
-        itemCount: filteredData.length,
+        itemCount: filteredData.length + (controller.hasMore.value ? 1 : 0),
         itemBuilder: (context, index) {
-          return _buildViolationCard(filteredData[index]);
+          if (index < filteredData.length) {
+            return _buildViolationCard(filteredData[index]);
+          } else {
+            return const Padding(
+              padding: EdgeInsets.symmetric(vertical: 32),
+              child: Center(child: CircularProgressIndicator.adaptive()),
+            );
+          }
         },
       );
     });
   }
 
   Widget _buildViolationCard(ViolationModel violation) {
-    final statusStyle = _getStatusStyle(violation.status);
-    final severityStyle = _getSeverityStyle(violation.severity);
+    // 🟢 Optimization: Removed custom class instances allocation. Directly fetching values.
+    final statusBgColor = _getStatusBgColor(violation.status);
+    final statusTextColor = _getStatusTextColor(violation.status);
+    final statusLabel = _getStatusLabel(violation.status);
+
+    final severityBgColor = _getSeverityBgColor(violation.severity);
+    final severityTextColor = _getSeverityTextColor(violation.severity);
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -162,51 +147,42 @@ class HistoryView extends GetView<HistoryController> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Type, Severity and Status
             Row(
               children: [
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                  decoration: BoxDecoration(color: Colors.grey[100], borderRadius: BorderRadius.circular(12)),
+                  decoration: BoxDecoration(color: AppColor.subtleBg, borderRadius: BorderRadius.circular(12)),
                   child: Text(
                     violation.type.name,
-                    style: const TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w500),
+                    style: TextStyle(fontSize: 12, color: AppColor.textSecondary, fontWeight: FontWeight.w500),
                   ),
                 ),
                 const SizedBox(width: 8),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: severityStyle.backgroundColor,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
+                  decoration: BoxDecoration(color: severityBgColor, borderRadius: BorderRadius.circular(12)),
                   child: Text(
                     violation.severity.name.toUpperCase(),
-                    style: TextStyle(fontSize: 12, color: severityStyle.textColor, fontWeight: FontWeight.w500),
+                    style: TextStyle(fontSize: 12, color: severityTextColor, fontWeight: FontWeight.w500),
                   ),
                 ),
                 const SizedBox(width: 8),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: statusStyle.backgroundColor,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
+                  decoration: BoxDecoration(color: statusBgColor, borderRadius: BorderRadius.circular(12)),
                   child: Text(
-                    statusStyle.label,
-                    style: TextStyle(fontSize: 12, color: statusStyle.textColor, fontWeight: FontWeight.w500),
+                    statusLabel,
+                    style: TextStyle(fontSize: 12, color: statusTextColor, fontWeight: FontWeight.w500),
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 12),
-            // Description
             Text(
               violation.description,
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.black87),
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColor.textPrimary),
             ),
             const SizedBox(height: 12),
-            // Details Row
             _buildDetailsRow(violation),
             if (violation.acknowledgedBy != null) ...[
               const SizedBox(height: 8),
@@ -216,7 +192,6 @@ class HistoryView extends GetView<HistoryController> {
               ),
             ],
             const SizedBox(height: 12),
-            // View Details Button
             _buildViewDetailsButton(violation),
           ],
         ),
@@ -227,13 +202,10 @@ class HistoryView extends GetView<HistoryController> {
   Widget _buildDetailsRow(ViolationModel violation) {
     return Row(
       children: [
-        Expanded(
-          flex: 2, // Give more space to zone since it's usually longer
-          child: _buildDetailItem(Icons.location_on, violation.zone),
-        ),
-        const SizedBox(width: 8), // Reduced spacing
+        Expanded(flex: 2, child: _buildDetailItem(Icons.location_on, violation.zone)),
+        const SizedBox(width: 8),
         Expanded(flex: 1, child: _buildDetailItem(Icons.calendar_today, controller.formatDate(violation.time))),
-        const SizedBox(width: 8), // Reduced spacing
+        const SizedBox(width: 8),
         Expanded(flex: 1, child: _buildDetailItem(Icons.access_time, controller.formatTime(violation.time))),
       ],
     );
@@ -241,18 +213,17 @@ class HistoryView extends GetView<HistoryController> {
 
   Widget _buildDetailItem(IconData icon, String text) {
     return Row(
-      mainAxisSize: MainAxisSize.min, // Take only minimum required space
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 16, color: Colors.grey[600]),
+        Icon(icon, size: 16, color: AppColor.textSecondary),
         const SizedBox(width: 4),
         Flexible(
-          // Allow text to wrap if needed
           child: MyText(
             text: text,
             fontSize: 12,
-            color: Colors.grey[600],
-            softWrap: false, // Prevent text wrapping
-            overflow: TextOverflow.ellipsis, // Show ... if text is too long
+            color: AppColor.textSecondary,
+            softWrap: false,
+            overflow: TextOverflow.ellipsis,
           ),
         ),
       ],
@@ -267,11 +238,11 @@ class HistoryView extends GetView<HistoryController> {
         icon: const Icon(Icons.remove_red_eye, size: 16),
         label: const Text('View Full Report'),
         style: OutlinedButton.styleFrom(
-          foregroundColor: Colors.grey[700],
-          backgroundColor: Colors.grey[50],
+          foregroundColor: AppColor.textSecondary,
+          backgroundColor: AppColor.subtleBg,
           padding: const EdgeInsets.symmetric(vertical: 12),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          side: BorderSide(color: Colors.grey[200]!),
+          side: BorderSide(color: AppColor.borderColor),
         ),
       ),
     );
@@ -285,54 +256,64 @@ class HistoryView extends GetView<HistoryController> {
           Container(
             width: 64,
             height: 64,
-            decoration: BoxDecoration(color: Colors.grey[100], shape: BoxShape.circle),
-            child: Icon(Icons.filter_list, size: 32, color: Colors.grey[400]),
+            decoration: BoxDecoration(color: AppColor.subtleBg, shape: BoxShape.circle),
+            child: Icon(Icons.filter_list, size: 32, color: AppColor.textTertiary),
           ),
           const SizedBox(height: 16),
           Text(
             'No Results Found',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.grey[900]),
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: AppColor.textPrimary),
           ),
           const SizedBox(height: 8),
-          Text('Try adjusting your filters or search term', style: TextStyle(color: Colors.grey[600])),
+          Text('Try adjusting your filters or search term', style: TextStyle(color: AppColor.textSecondary)),
         ],
       ),
     );
   }
 
-  _StatusStyle _getStatusStyle(ViolationStatus status) {
+  // Theme-aware badge colors (light tint in light mode, dark tint in dark mode).
+  Color _statusBase(ViolationStatus status) {
     switch (status) {
       case ViolationStatus.resolved:
-        return _StatusStyle(backgroundColor: Colors.green[100]!, textColor: Colors.green[700]!, label: 'Resolved');
+        return Colors.green;
       case ViolationStatus.acknowledged:
-        return _StatusStyle(
-          backgroundColor: Colors.yellow[100]!,
-          textColor: Colors.yellow[700]!,
-          label: 'Acknowledged',
-        );
+        return Colors.amber;
       case ViolationStatus.dismissed:
-        return _StatusStyle(backgroundColor: Colors.grey[100]!, textColor: Colors.grey[700]!, label: 'Dismissed');
+        return Colors.grey;
       case ViolationStatus.active:
-        return _StatusStyle(backgroundColor: Colors.red[100]!, textColor: Colors.red[700]!, label: 'Active');
+        return Colors.red;
     }
   }
 
-  _StatusStyle _getSeverityStyle(ViolationSeverity severity) {
+  Color _getStatusBgColor(ViolationStatus status) => AppColor.accentBadgeBg(_statusBase(status));
+
+  Color _getStatusTextColor(ViolationStatus status) => AppColor.accentText(_statusBase(status));
+
+  String _getStatusLabel(ViolationStatus status) {
+    switch (status) {
+      case ViolationStatus.resolved:
+        return 'Resolved';
+      case ViolationStatus.acknowledged:
+        return 'Acknowledged';
+      case ViolationStatus.dismissed:
+        return 'Dismissed';
+      case ViolationStatus.active:
+        return 'Active';
+    }
+  }
+
+  Color _severityBase(ViolationSeverity severity) {
     switch (severity) {
       case ViolationSeverity.high:
-        return _StatusStyle(backgroundColor: Colors.red[100]!, textColor: Colors.red[700]!, label: 'HIGH');
+        return Colors.red;
       case ViolationSeverity.medium:
-        return _StatusStyle(backgroundColor: Colors.orange[100]!, textColor: Colors.orange[700]!, label: 'MEDIUM');
+        return Colors.orange;
       case ViolationSeverity.low:
-        return _StatusStyle(backgroundColor: Colors.blue[100]!, textColor: Colors.blue[700]!, label: 'LOW');
+        return Colors.blue;
     }
   }
-}
 
-class _StatusStyle {
-  final Color backgroundColor;
-  final Color textColor;
-  final String label;
+  Color _getSeverityBgColor(ViolationSeverity severity) => AppColor.accentBadgeBg(_severityBase(severity));
 
-  _StatusStyle({required this.backgroundColor, required this.textColor, required this.label});
+  Color _getSeverityTextColor(ViolationSeverity severity) => AppColor.accentText(_severityBase(severity));
 }

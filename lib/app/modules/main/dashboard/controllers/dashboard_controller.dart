@@ -1,12 +1,15 @@
 import 'dart:async';
 import 'package:get/get.dart';
+import 'package:construction_safety/utils/helpers/snackbar.dart';
 import '../../../../data/models/camera_model.dart';
 import '../../../../data/models/violation_model.dart';
+import '../../../../data/services/auth_service.dart';
 import '../../../../data/services/firestore_service.dart';
 import '../../controllers/main_controller.dart';
 
 class DashboardController extends GetxController {
   final FirestoreService _firestore = FirestoreService.to;
+  final AuthService _auth = Get.find<AuthService>();
   final MainController _main = Get.find<MainController>();
 
   // ── Observables ────────────────────────────────────────────────────────────
@@ -52,34 +55,30 @@ class DashboardController extends GetxController {
   Future<void> fetchAll() async {
     isLoading.value = true;
     try {
-      await Future.wait([fetchCameras(), fetchRecentViolations(), fetchSummary()]);
+      // Violations MainController ke stream se aati hain (app start par, all statuses) —
+      // yahan dobara fetch nahi karte taake _main.violations open-only se overwrite na ho.
+      await Future.wait([fetchCameras(), fetchSummary()]);
     } finally {
       isLoading.value = false;
     }
   }
 
+  Future<List<String>?> _getSiteIds() async {
+    final siteIds = await _auth.getUserSiteIds();
+    return siteIds == null || siteIds.isEmpty ? null : siteIds;
+  }
+
   Future<void> fetchCameras() async {
     try {
-      final raw = await _firestore.getCameras();
+      final siteIds = await _getSiteIds();
+      final raw = await _firestore.getCameras(siteIds: siteIds);
       cameras.assignAll(raw);
       if (cameras.isNotEmpty) selectedCamera.value = cameras.first;
       if (Get.isRegistered<MainController>()) {
         Get.find<MainController>().setCameras(cameras);
       }
     } catch (e) {
-      Get.snackbar('Camera Error', e.toString(), snackPosition: SnackPosition.BOTTOM);
-    }
-  }
-
-  Future<void> fetchRecentViolations() async {
-    try {
-      final raw = await _firestore.getViolations(status: 'open', limit: 200);
-      violations.assignAll(raw);
-      if (Get.isRegistered<MainController>()) {
-        Get.find<MainController>().setViolations(violations);
-      }
-    } catch (e) {
-      // Non-fatal — dashboard still shows cameras
+      SnackBarUtils.showError(e.toString(), title: 'Camera Error');
     }
   }
 
@@ -99,14 +98,16 @@ class DashboardController extends GetxController {
     selectedCamera.value = camera;
   }
 
-  // ── Computed stats ─────────────────────────────────────────────────────────
-  int get activeViolationsCount => violations.where((v) => v.status == ViolationStatus.active).length;
+  // ── Computed stats — MainController (single source, app start par load) se ───
+  /// Aaj ke open/active violations (dashboard "Open Violations" card).
+  int get activeViolationsCount => _main.todayActiveViolations;
 
   int get activeZones => activeZonesValue.value;
 
   int get compliantCameras => compliantCamerasValue.value.clamp(0, activeZones).toInt();
 
-  int get complianceRate => complianceRateValue.value.clamp(0, 100).toInt();
+  /// Aaj ka compliance (dashboard "Safety Coverage" card).
+  int get complianceRate => _main.todayComplianceRate;
 
   ViolationModel? get mostRecentViolation {
     if (violations.isEmpty) return null;

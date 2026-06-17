@@ -14,13 +14,12 @@ class AppBinding extends Bindings {
     Get.put<AuthService>(AuthService(), permanent: true);
     Get.put<FirestoreService>(FirestoreService(), permanent: true);
     Get.put<SafetyApiService>(SafetyApiService(), permanent: true);
-    Get.put<WebSocketService>(WebSocketService(), permanent: true);
+    // Get.put<WebSocketService>(WebSocketService(), permanent: true);
     Get.put<Repository>(Repository(), permanent: true);
     Get.put<Logger>(Logger(), permanent: true);
     Get.put<MyLoading>(MyLoading(), permanent: true);
     Get.put<FlutterSecureStorage>(const FlutterSecureStorage(), permanent: true);
-
-    // ForNotification
-    // NotificationService.initialize();
+    // Note: AlertsController/MainController etc. MainBinding mein lazyPut hote hain
+    // (MAIN route par), taake AlertsController ka Get.find<MainController>() kaam kare.
   }
 }

@@ -71,4 +71,5 @@ class DefaultFirebaseOptions {
     storageBucket: 'fyp-backend-fa22.firebasestorage.app',
     iosBundleId: 'com.devitcity.example',
   );
+
 }

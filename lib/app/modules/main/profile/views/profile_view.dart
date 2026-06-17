@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:construction_safety/app/core/extensions/theme_extensions.dart';
+import 'package:construction_safety/common/widgets/app_header.dart';
 import '../controllers/profile_controller.dart';
 
 class ProfileView extends GetView<ProfileController> {
@@ -8,530 +10,283 @@ class ProfileView extends GetView<ProfileController> {
 
   @override
   Widget build(BuildContext context) {
+    Get.put(ProfileController());
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.dark.copyWith(
-        statusBarIconBrightness: Brightness.dark,
-        statusBarBrightness: Brightness.light,
-        statusBarColor: Colors.transparent,
-      ),
+      value: AppColor.statusBar,
       child: Scaffold(
-        backgroundColor: const Color(0xFFF9FAFB), // bg-gray-50
+        backgroundColor: AppColor.scaffoldBg,
         body: SafeArea(
-          child: Column(
-            children: [
-              // Header
-              _buildHeader(),
-              // Content
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    children: [
-                      // Profile Picture
-                      _buildProfilePicture(),
-                      const SizedBox(height: 16),
-                      // Personal Information
-                      _buildPersonalInformation(),
-                      const SizedBox(height: 16),
-                      // Work Information
-                      _buildWorkInformation(),
-                      const SizedBox(height: 16),
-                      // Account Stats
-                      _buildAccountStats(),
-                      const SizedBox(height: 16),
-                      // Danger Zone
-                      _buildDangerZone(),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+          child: Obx(() {
+            if (controller.isLoading.value && controller.formData['name']!.isEmpty) {
+              return const Center(child: CircularProgressIndicator(color: Color(0xFF2563EB)));
+            }
 
-  Widget _buildHeader() {
-    return Container(
-      width: double.infinity, // Make header full width
-      color: Colors.white,
-      padding: const EdgeInsets.all(16),
-      child: Row(
-        children: [
-          IconButton(
-            onPressed: () => Get.back(),
-            icon: const Icon(Icons.arrow_back, color: Color(0xFF4B5563)),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Column(
+            return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Profile',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF111827),
+                const AppHeader(
+                  title: 'My Profile',
+                  subtitle: 'View and manage your account information',
+                  showBack: true,
+                ),
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Identity Card
+                        _buildIdentityCard(),
+                        const SizedBox(height: 16),
+                        // Account Details
+                        _buildContactInfoCard(),
+                        const SizedBox(height: 24),
+                      ],
+                    ),
                   ),
                 ),
-                const Text(
-                  'Manage your account information',
-                  style: TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
-                ),
               ],
-            ),
-          ),
-          Obx(() {
-            return Container(
-              decoration: BoxDecoration(
-                color: controller.isEditing.value
-                    ? const Color(0xFF059669) // green-600
-                    : const Color(0xFF2563EB), // blue-600
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: IconButton(
-                onPressed: controller.isEditing.value
-                    ? controller.saveProfile
-                    : controller.toggleEditing,
-                icon: Icon(
-                  controller.isEditing.value ? Icons.save : Icons.edit,
-                  color: Colors.white,
-                  size: 20,
-                ),
-              ),
             );
           }),
-        ],
+        ),
       ),
     );
   }
 
-  Widget _buildProfilePicture() {
-    return Obx(() {
-      final avatarUrl = controller.resolvedAvatarUrl;
-      return Container(
-        width: double.infinity, // Make profile picture container full width
-        padding: const EdgeInsets.all(24),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFFE5E7EB)),
-        ),
-        child: Column(
-          children: [
-            Container(
-              width: 96,
-              height: 96,
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
+  Widget _buildIdentityCard() {
+    final status = controller.formData['status'] ?? 'inactive';
+    final isActive = status.toLowerCase() == 'active';
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColor.cardBg,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColor.borderColor),
+      ),
+      child: Column(
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              // Avatar Circle
+              Container(
+                width: 72,
+                height: 72,
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Color(0xFF2563EB), Color(0xFF60A5FA)],
+                  ),
+                ),
+                child: Center(
+                  child: Text(
+                    controller.getInitials(),
+                    style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                ),
               ),
-              child: ClipOval(
-                child: avatarUrl != null
-                    ? Image.network(
-                        avatarUrl,
-                        fit: BoxFit.cover,
-                        width: 96,
-                        height: 96,
-                        errorBuilder: (_, __, ___) => _buildAvatarFallback(),
-                      )
-                    : _buildAvatarFallback(),
-              ),
-            ),
-            const SizedBox(height: 16),
-            if (controller.isEditing.value) ...[
-              TextButton(
-                onPressed: controller.changePhoto,
-                child: const Text(
-                  'Change Photo',
-                  style: TextStyle(color: Color(0xFF2563EB), fontSize: 14),
+              const SizedBox(width: 16),
+
+              // Name, Role & Status Badge
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            controller.formData['name'] ?? 'Unknown Officer',
+                            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: AppColor.textPrimary),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        // Status Badge
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: isActive ? const Color(0xFFDCFCE7) : const Color(0xFFF3F4F6),
+                            borderRadius: BorderRadius.circular(9999),
+                          ),
+                          child: Text(
+                            isActive ? 'Active' : 'Inactive',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: isActive ? const Color(0xFF16A34A) : AppColor.textSecondary,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text('Safety Officer', style: TextStyle(fontSize: 14, color: AppColor.textSecondary)),
+                  ],
                 ),
               ),
             ],
-          ],
-        ),
-      );
-    });
-  }
-
-  Widget _buildAvatarFallback() {
-    return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFF3B82F6), Color(0xFF1D4ED8)],
-        ),
-        shape: BoxShape.circle,
-      ),
-      child: Center(
-        child: Text(
-          controller.getInitials(),
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 24,
-            fontWeight: FontWeight.w600,
           ),
-        ),
-      ),
-    );
-  }
 
-  Widget _buildPersonalInformation() {
-    return Container(
-      width: double.infinity, // Make container full width
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Section Header - Fixed to take full width
-          Container(
-            width: double.infinity, // Make section header full width
-            padding: const EdgeInsets.all(16),
-            decoration: const BoxDecoration(
-              border: Border(bottom: BorderSide(color: Color(0xFFE5E7EB))),
-            ),
-            child: const Text(
-              'Personal Information',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF111827),
-              ),
-            ),
-          ),
-          // Form Fields
           Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              children: [
-                _buildFormField(
-                  icon: Icons.person,
-                  label: 'Full Name',
-                  field: 'name',
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            child: Divider(color: AppColor.borderColor.withOpacity(0.8), height: 1),
+          ),
+
+          // Meta Info (Sites Assigned & Login ID)
+          Row(
+            children: [
+              Expanded(
+                child: Row(
+                  children: [
+                    Icon(Icons.location_on_outlined, size: 18, color: AppColor.textTertiary),
+                    const SizedBox(width: 8),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Sites Assigned', style: TextStyle(fontSize: 12, color: AppColor.textSecondary)),
+                        Text(
+                          '${controller.formData['site_count']} site(s)',
+                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: AppColor.textPrimary),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 16),
-                _buildFormField(
-                  icon: Icons.person_outline,
-                  label: 'Role',
-                  field: 'role',
+              ),
+              Expanded(
+                child: Row(
+                  children: [
+                    Icon(Icons.calendar_today_outlined, size: 18, color: AppColor.textTertiary),
+                    const SizedBox(width: 8),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Login ID', style: TextStyle(fontSize: 12, color: AppColor.textSecondary)),
+                        Text(
+                          controller.formData['loginId'] ?? '—',
+                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: AppColor.textPrimary),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 16),
-                _buildFormField(
-                  icon: Icons.email,
-                  label: 'Email',
-                  field: 'email',
-                ),
-                const SizedBox(height: 16),
-                _buildFormField(
-                  icon: Icons.phone,
-                  label: 'Phone Number',
-                  field: 'phone',
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         ],
       ),
     );
   }
 
-  Widget _buildWorkInformation() {
+  Widget _buildContactInfoCard() {
     return Container(
-      width: double.infinity, // Make container full width
+      width: double.infinity,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColor.cardBg,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
+        border: Border.all(color: AppColor.borderColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Section Header - Fixed to take full width
-          Container(
-            width: double.infinity, // Make section header full width
-            padding: const EdgeInsets.all(16),
-            decoration: const BoxDecoration(
-              border: Border(bottom: BorderSide(color: Color(0xFFE5E7EB))),
-            ),
-            child: const Text(
-              'Work Information',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF111827),
-              ),
-            ),
-          ),
-          // Form Fields
+          // Card Header
           Padding(
             padding: const EdgeInsets.all(16),
-            child: Column(
+            child: Row(
               children: [
-                _buildFormField(
-                  icon: Icons.business,
-                  label: 'Company',
-                  field: 'company',
-                ),
-                const SizedBox(height: 16),
-                _buildFormField(
-                  icon: Icons.location_on,
-                  label: 'Current Location',
-                  field: 'location',
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFormField({
-    required IconData icon,
-    required String label,
-    required String field,
-  }) {
-    return Obx(() {
-      return SizedBox(
-        width: double.infinity, // Make form field take full width
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(icon, size: 16, color: const Color(0xFF6B7280)),
+                const Icon(Icons.person_outline, size: 20, color: Color(0xFF2563EB)),
                 const SizedBox(width: 8),
                 Text(
-                  label,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: Color(0xFF6B7280),
-                  ),
+                  'Account Details',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColor.textPrimary),
                 ),
               ],
             ),
-            const SizedBox(height: 8),
-            controller.isEditing.value
-                ? TextFormField(
-                    controller: controller.controllerForField(field),
-                    readOnly: !controller.isFieldEditable(field),
-                    onChanged: (value) => controller.updateField(field, value),
-                    decoration: InputDecoration(
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
-                      ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(color: Color(0xFFD1D5DB)),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(color: Color(0xFF2563EB)),
-                      ),
-                      filled: !controller.isFieldEditable(field),
-                      fillColor: !controller.isFieldEditable(field)
-                          ? const Color(0xFFF3F4F6)
-                          : null,
-                    ),
-                  )
-                : SizedBox(
-                    width: double.infinity, // Make text take full width
-                    child: Text(
-                      controller.formData[field] ?? '',
-                      style: const TextStyle(
-                        fontSize: 14,
-                        color: Color(0xFF111827),
-                      ),
-                    ),
-                  ),
-          ],
-        ),
-      );
-    });
-  }
+          ),
+          Divider(color: AppColor.borderColor.withOpacity(0.8), height: 1),
 
-  Widget _buildAccountStats() {
-    return Container(
-      width: double.infinity, // Make container full width
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Section Header - Fixed to take full width
-          Container(
-            width: double.infinity, // Make section header full width
-            padding: const EdgeInsets.all(16),
-            decoration: const BoxDecoration(
-              border: Border(bottom: BorderSide(color: Color(0xFFE5E7EB))),
-            ),
-            child: const Text(
-              'Account Statistics',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF111827),
-              ),
-            ),
-          ),
-          // Stats Grid
-          Obx(
-            () => Padding(
-              padding: const EdgeInsets.all(16),
-              child: GridView.count(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                crossAxisCount: 2,
-                crossAxisSpacing: 12,
-                mainAxisSpacing: 12,
-                childAspectRatio: 1.5,
-                children: [
-                  _buildStatCard(
-                    value: controller.formData['violations_resolved'] ?? '0',
-                    label: 'Violations Resolved',
-                    color: const Color(0xFFDBEAFE),
-                    textColor: const Color(0xFF2563EB),
-                  ),
-                  _buildStatCard(
-                    value: controller.formData['avg_response_rate'] ?? '0%',
-                    label: 'Avg Response Rate',
-                    color: const Color(0xFFDCFCE7),
-                    textColor: const Color(0xFF16A34A),
-                  ),
-                  _buildStatCard(
-                    value: controller.formData['active_zones'] ?? '0',
-                    label: 'Active Zones',
-                    color: const Color(0xFFF3E8FF),
-                    textColor: const Color(0xFF9333EA),
-                  ),
-                  _buildStatCard(
-                    value: controller.formData['avg_response_time'] ?? '0.0s',
-                    label: 'Avg Response Time',
-                    color: const Color(0xFFFFEDD5),
-                    textColor: const Color(0xFFEA580C),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatCard({
-    required String value,
-    required String label,
-    required Color color,
-    required Color textColor,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w600,
-              color: textColor,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDangerZone() {
-    return Container(
-      width: double.infinity, // Make container full width
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFFECACA)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Section Header - Fixed to take full width
-          Container(
-            width: double.infinity, // Make section header full width
-            padding: const EdgeInsets.all(16),
-            decoration: const BoxDecoration(
-              color: Color(0xFFFEF2F2),
-              border: Border(bottom: BorderSide(color: Color(0xFFFECACA))),
-            ),
-            child: const Text(
-              'Danger Zone',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF991B1B),
-              ),
-            ),
-          ),
-          // Buttons
+          // Card Content
           Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
               children: [
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton(
-                    onPressed: controller.showChangePasswordDialog,
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      side: const BorderSide(color: Color(0xFFD1D5DB)),
-                      backgroundColor: Colors.white,
-                    ),
-                    child: const Text(
-                      'Change Password',
-                      style: TextStyle(color: Color(0xFF374151)),
-                    ),
-                  ),
+                _buildReadOnlyRow(icon: Icons.mail_outline, label: 'Email', value: controller.formData['email']),
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  child: Divider(color: AppColor.borderColor.withOpacity(0.5), height: 1),
                 ),
-                const SizedBox(height: 12),
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton(
-                    onPressed: controller.showDeleteAccountDialog,
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      side: const BorderSide(color: Color(0xFFFECACA)),
-                      backgroundColor: const Color(0xFFFEF2F2),
-                    ),
-                    child: const Text(
-                      'Delete Account',
-                      style: TextStyle(color: Color(0xFFDC2626)),
-                    ),
-                  ),
+                _buildReadOnlyRow(icon: Icons.phone_outlined, label: 'Phone', value: controller.formData['phone']),
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  child: Divider(color: AppColor.borderColor.withOpacity(0.5), height: 1),
                 ),
+                _buildReadOnlyRow(icon: Icons.login, label: 'Login ID', value: controller.formData['loginId']),
               ],
             ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildInputField({
+    required String label,
+    required TextEditingController textController,
+    TextInputType? keyboardType,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: AppColor.textSecondary),
+        ),
+        const SizedBox(height: 6),
+        TextFormField(
+          controller: textController,
+          keyboardType: keyboardType,
+          style: TextStyle(fontSize: 14, color: AppColor.textPrimary),
+          decoration: InputDecoration(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(6),
+              borderSide: BorderSide(color: AppColor.borderColor),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(6),
+              borderSide: const BorderSide(color: Color(0xFF2563EB), width: 2),
+            ),
+            filled: true,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildReadOnlyRow({required IconData icon, required String label, required String? value}) {
+    return Row(
+      children: [
+        Icon(icon, size: 20, color: AppColor.textTertiary),
+        const SizedBox(width: 12),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(label, style: TextStyle(fontSize: 12, color: AppColor.textSecondary)),
+            const SizedBox(height: 2),
+            Text(
+              (value == null || value.trim().isEmpty) ? '—' : value,
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: AppColor.textPrimary),
+            ),
+          ],
+        ),
+      ],
     );
   }
 }

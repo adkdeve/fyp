@@ -12,6 +12,13 @@ class ApisUrl {
   // ── Cameras ─────────────────────────────────────────────────────────────
   static String get cameras => '${AppConfig.baseUrl}cameras';
   static String cameraById(int id) => '${AppConfig.baseUrl}cameras/$id';
+  static String get cameraStart => '${AppConfig.baseUrl}cameras/start';
+  static String cameraStop(dynamic id) => '${AppConfig.baseUrl}cameras/stop/$id';
+
+  // ── Safe Zone ─────────────────────────────────────────────────────────────
+  static String get safeZoneSet => '${AppConfig.baseUrl}safe-zone/set';
+  static String safeZoneGet(dynamic id) => '${AppConfig.baseUrl}safe-zone/$id';
+  static String safeZoneClear(dynamic id) => '${AppConfig.baseUrl}safe-zone/clear/$id';
 
   // ── Violations ──────────────────────────────────────────────────────────
   static String get violations => '${AppConfig.baseUrl}violations';

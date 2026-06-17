@@ -4,11 +4,9 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:get/get.dart';
 import 'package:logger/logger.dart';
 import 'dart:io';
-
 import '../models/violation_model.dart';
 import '../models/camera_model.dart';
 import '../models/user_model.dart';
-import 'auth_service.dart';
 
 class FirestoreService extends GetxService {
   static const String _tag = 'FirestoreService';
@@ -46,13 +44,8 @@ class FirestoreService extends GetxService {
 
   dynamic _handle(dynamic response) {
     if (response is FirebaseException) {
-      _logger.e(
-        '[$_tag] Firebase error: ${response.code} - ${response.message}',
-      );
-      return {
-        'error': response.message ?? 'Firebase error',
-        'code': response.code,
-      };
+      _logger.e('[$_tag] Firebase error: ${response.code} - ${response.message}');
+      return {'error': response.message ?? 'Firebase error', 'code': response.code};
     }
     if (response is Exception) {
       _logger.e('[$_tag] Exception: $response');
@@ -76,14 +69,18 @@ class FirestoreService extends GetxService {
   // ─ AUTHENTICATION
   // ──────────────────────────────────────────────────────────────────────────
 
-  Future<Map<String, dynamic>> login(String loginId, String password) async {
+  static List<String>? _parseStringList(dynamic value) {
+    if (value is! List) return null;
+    return value.where((item) => item != null).map((item) => item.toString()).where((item) => item.isNotEmpty).toList();
+  }
+
+  Future<Map<String, dynamic>> login(String identifier, String password) async {
     try {
-      // Query for officer by login_id
-      final snapshot = await _firestore
-          .collection('officers')
-          .where('loginId', isEqualTo: loginId)
-          .limit(1)
-          .get();
+      // Lookup officer by login ID or email
+      var snapshot = await _firestore.collection('officers').where('loginId', isEqualTo: identifier).limit(1).get();
+      if (snapshot.docs.isEmpty) {
+        snapshot = await _firestore.collection('officers').where('email', isEqualTo: identifier).limit(1).get();
+      }
 
       if (snapshot.docs.isEmpty) {
         return {'error': 'Invalid login ID or password'};
@@ -98,11 +95,22 @@ class FirestoreService extends GetxService {
         return {'error': 'Invalid login ID or password'};
       }
 
+      // Verify officer account state and assignments
+      final status = (userData['status'] ?? '').toString().toLowerCase();
+      final siteIds = _parseStringList(userData['siteIds'] ?? userData['site_ids']);
+      if (status != 'active') {
+        return {'error': 'Your account has been deactivated. Contact your admin.'};
+      }
+      if (siteIds == null || siteIds.isEmpty) {
+        return {'error': 'You are not assigned to any site. Contact your admin.'};
+      }
+
       final uid = userDoc.id;
       final token = _generateToken(uid);
 
       final userResponse = {...userData, 'id': uid};
       userResponse.remove('password');
+      userResponse['siteIds'] = siteIds;
 
       return {'user': userResponse, 'uid': uid, 'token': token};
     } catch (e) {
@@ -114,17 +122,24 @@ class FirestoreService extends GetxService {
     return 'token_${uid}_${DateTime.now().millisecondsSinceEpoch}';
   }
 
-  Future<Map<String, dynamic>> register(
-    String email,
-    String password,
-    String firstName,
-    String lastName,
-  ) async {
+  Future<Map<String, dynamic>> getOfficerMe(String uid) async {
     try {
-      final userCredential = await _auth.createUserWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
+      final doc = await _firestore.collection('officers').doc(uid).get();
+      if (!doc.exists) {
+        return {'error': 'Officer document not found'};
+      }
+      final userData = doc.data() ?? {};
+      userData['id'] = doc.id;
+      userData.remove('password'); // Security ke liye password remove kiya
+      return userData;
+    } catch (e) {
+      return _handle(e);
+    }
+  }
+
+  Future<Map<String, dynamic>> register(String email, String password, String firstName, String lastName) async {
+    try {
+      final userCredential = await _auth.createUserWithEmailAndPassword(email: email, password: password);
 
       final user = userCredential.user;
       if (user == null) {
@@ -147,10 +162,7 @@ class FirestoreService extends GetxService {
 
       return {'user': userData, 'uid': user.uid};
     } on FirebaseAuthException catch (e) {
-      return _handle({
-        'error': e.message ?? 'Registration failed',
-        'code': e.code,
-      });
+      return _handle({'error': e.message ?? 'Registration failed', 'code': e.code});
     } catch (e) {
       return _handle(e);
     }
@@ -163,10 +175,7 @@ class FirestoreService extends GetxService {
         return {'error': 'Not authenticated'};
       }
 
-      final doc = await _firestore
-          .collection('users')
-          .doc(currentUser.uid)
-          .get();
+      final doc = await _firestore.collection('users').doc(currentUser.uid).get();
       if (!doc.exists) {
         return {'error': 'User document not found'};
       }
@@ -195,10 +204,17 @@ class FirestoreService extends GetxService {
     }
   }
 
-  Future<bool> changePassword(
-    String currentPassword,
-    String newPassword,
-  ) async {
+  Future<void> updateOfficerProfile(String officerId, Map<String, dynamic> data) async {
+    try {
+      // 'officers' collection ke andar targeted officer ka data update karein
+      await _firestore.collection('officers').doc(officerId).update(data);
+    } catch (e) {
+      print("Firestore Update Error: $e");
+      throw 'Failed to update profile in database';
+    }
+  }
+
+  Future<bool> changePassword(String currentPassword, String newPassword) async {
     try {
       final currentUser = _auth.currentUser;
       if (currentUser == null || currentUser.email == null) {
@@ -207,10 +223,7 @@ class FirestoreService extends GetxService {
       }
 
       // Re-authenticate with current password
-      final credential = EmailAuthProvider.credential(
-        email: currentUser.email!,
-        password: currentPassword,
-      );
+      final credential = EmailAuthProvider.credential(email: currentUser.email!, password: currentPassword);
       await currentUser.reauthenticateWithCredential(credential);
 
       // Update password
@@ -245,15 +258,65 @@ class FirestoreService extends GetxService {
   // ─ CAMERAS
   // ──────────────────────────────────────────────────────────────────────────
 
+  List<List<T>> _chunkList<T>(List<T> items, int chunkSize) {
+    final chunks = <List<T>>[];
+    for (var i = 0; i < items.length; i += chunkSize) {
+      final end = (i + chunkSize > items.length) ? items.length : i + chunkSize;
+      chunks.add(items.sublist(i, end));
+    }
+    return chunks;
+  }
+
+  List<dynamic> _normalizeFirestoreQueryIds(List<String> ids) {
+    final normalized = <dynamic>{};
+    for (final id in ids) {
+      normalized.add(id);
+      final parsedInt = int.tryParse(id);
+      if (parsedInt != null) normalized.add(parsedInt);
+    }
+    return normalized.toList();
+  }
+
   Future<List<CameraModel>> getCameras({
     bool? enabledOnly = false,
     bool? enabled,
     String? status,
     String? q,
+    List<String>? siteIds,
   }) async {
     try {
+      if (siteIds != null && siteIds.isEmpty) {
+        return [];
+      }
+      if (siteIds != null && siteIds.isNotEmpty && siteIds.length > 10) {
+        final chunks = _chunkList<String>(siteIds, 10);
+        final allResults = await Future.wait(
+          chunks.map((chunk) async {
+            var query = _firestore.collection('cameras') as Query;
+            final siteIdValues = _normalizeFirestoreQueryIds(chunk);
+            query = query.where('site_id', whereIn: siteIdValues);
+            if (enabled != null) {
+              query = query.where('enabled', isEqualTo: enabled);
+            }
+            if (status != null) {
+              query = query.where('status', isEqualTo: status);
+            }
+            final snapshot = await query.get();
+            return snapshot.docs.map((doc) {
+              final data = doc.data() as Map<String, dynamic>;
+              data['id'] = doc.id;
+              return CameraModel.fromJson(data);
+            }).toList();
+          }),
+        );
+        return allResults.expand((list) => list).toList();
+      }
+
       var query = _firestore.collection('cameras') as Query;
 
+      if (siteIds != null && siteIds.isNotEmpty) {
+        query = query.where('site_id', whereIn: _normalizeFirestoreQueryIds(siteIds));
+      }
       if (enabled != null) {
         query = query.where('enabled', isEqualTo: enabled);
       }
@@ -273,9 +336,12 @@ class FirestoreService extends GetxService {
     }
   }
 
-  Stream<List<CameraModel>> getCamerasStream({bool? enabled, String? status}) {
+  Stream<List<CameraModel>> getCamerasStream({bool? enabled, String? status, List<String>? siteIds}) {
     var query = _firestore.collection('cameras') as Query;
 
+    if (siteIds != null && siteIds.isNotEmpty && siteIds.length <= 10) {
+      query = query.where('site_id', whereIn: _normalizeFirestoreQueryIds(siteIds));
+    }
     if (enabled != null) {
       query = query.where('enabled', isEqualTo: enabled);
     }
@@ -286,16 +352,31 @@ class FirestoreService extends GetxService {
     return query
         .snapshots()
         .map((snapshot) {
-          return snapshot.docs.map((doc) {
-            final data = doc.data() as Map<String, dynamic>;
-            data['id'] = doc.id; // Include the Firestore document ID
-            return CameraModel.fromJson(data);
-          }).toList();
+          return snapshot.docs
+              .map((doc) {
+                final data = doc.data() as Map<String, dynamic>;
+                if (siteIds != null && siteIds.isNotEmpty && siteIds.length > 10) {
+                  final rawSiteId = data['site_id'];
+                  if (rawSiteId == null || !siteIds.contains(rawSiteId.toString())) {
+                    return null;
+                  }
+                }
+                data['id'] = doc.id; // Include the Firestore document ID
+                return CameraModel.fromJson(data);
+              })
+              .whereType<CameraModel>()
+              .toList();
         })
         .handleError((e) {
           _logger.e('[$_tag] Get cameras stream error: $e');
           return <CameraModel>[];
         });
+  }
+
+  Future<List<String>> getCameraIdsBySiteIds(List<String>? siteIds, {bool enabledOnly = true}) async {
+    if (siteIds == null || siteIds.isEmpty) return [];
+    final cameras = await getCameras(enabled: enabledOnly ? true : null, siteIds: siteIds);
+    return cameras.map((camera) => camera.id?.toString() ?? '').where((id) => id.isNotEmpty).toList();
   }
 
   Future<CameraModel?> createCamera(Map<String, dynamic> data) async {
@@ -331,15 +412,52 @@ class FirestoreService extends GetxService {
     String? severity,
     String? type,
     String? cameraId,
+    List<String>? cameraIds,
     bool enabledOnly = false,
     int limit = 50,
     int offset = 0,
   }) async {
     try {
+      if (cameraIds != null && cameraIds.isNotEmpty && cameraIds.length > 10) {
+        final chunks = _chunkList<String>(cameraIds, 10);
+        final allResults = await Future.wait(
+          chunks.map((chunk) async {
+            var query = _firestore.collection('violations') as Query;
+            final cameraIdValues = _normalizeFirestoreQueryIds(chunk);
+            query = query.where('camera_id', whereIn: cameraIdValues);
+            if (severity != null) {
+              query = query.where('severity', isEqualTo: severity);
+            }
+            if (status != null) {
+              query = query.where('status', isEqualTo: status);
+            }
+            if (type != null) {
+              query = query.where('type', isEqualTo: type);
+            }
+            query = query.orderBy('detected_at', descending: true).limit(limit);
+            final snapshot = await query.get();
+            final violations = <ViolationModel>[];
+            for (final doc in snapshot.docs) {
+              final violation = _parseViolationSafely(doc);
+              if (violation != null) {
+                violations.add(violation);
+              }
+            }
+            return violations;
+          }),
+        );
+        final merged = allResults.expand((list) => list).toList();
+        merged.sort((a, b) => b.time.compareTo(a.time));
+        return merged.take(limit).toList();
+      }
+
       var query = _firestore.collection('violations') as Query;
 
       if (cameraId != null) {
         query = query.where('camera_id', isEqualTo: cameraId);
+      }
+      if (cameraIds != null && cameraIds.isNotEmpty) {
+        query = query.where('camera_id', whereIn: _normalizeFirestoreQueryIds(cameraIds));
       }
       if (severity != null) {
         query = query.where('severity', isEqualTo: severity);
@@ -372,6 +490,7 @@ class FirestoreService extends GetxService {
 
   Stream<List<ViolationModel>> getViolationsStream({
     String? cameraId,
+    List<String>? cameraIds,
     String? severity,
     String? status,
     String? type,
@@ -381,6 +500,9 @@ class FirestoreService extends GetxService {
 
     if (cameraId != null) {
       query = query.where('camera_id', isEqualTo: cameraId);
+    }
+    if (cameraIds != null && cameraIds.isNotEmpty && cameraIds.length <= 10) {
+      query = query.where('camera_id', whereIn: _normalizeFirestoreQueryIds(cameraIds));
     }
     if (severity != null) {
       query = query.where('severity', isEqualTo: severity);
@@ -401,6 +523,12 @@ class FirestoreService extends GetxService {
           for (final doc in snapshot.docs) {
             try {
               final data = doc.data() as Map<String, dynamic>;
+              if (cameraIds != null && cameraIds.isNotEmpty && cameraIds.length > 10) {
+                final rawCameraId = data['camera_id'];
+                if (rawCameraId == null || !cameraIds.contains(rawCameraId.toString())) {
+                  continue;
+                }
+              }
               final violation = ViolationModel.fromJson(data);
               violations.add(violation);
             } catch (e) {
@@ -416,16 +544,9 @@ class FirestoreService extends GetxService {
         });
   }
 
-  Future<bool> resolveViolation(
-    String id, {
-    required String status,
-    String? notes,
-  }) async {
+  Future<bool> resolveViolation(String id, {required String status, String? notes}) async {
     try {
-      final data = {
-        'status': status,
-        'updatedAt': FieldValue.serverTimestamp(),
-      };
+      final data = {'status': status, 'updatedAt': FieldValue.serverTimestamp()};
       if (notes != null) {
         data['notes'] = notes;
       }
@@ -441,11 +562,7 @@ class FirestoreService extends GetxService {
   // ─ ALERTS
   // ──────────────────────────────────────────────────────────────────────────
 
-  Future<List<Map<String, dynamic>>> getAlerts({
-    bool? unreadOnly,
-    String? severity,
-    int limit = 50,
-  }) async {
+  Future<List<Map<String, dynamic>>> getAlerts({bool? unreadOnly, String? severity, int limit = 50}) async {
     try {
       var query = _firestore.collection('alerts') as Query;
 
@@ -459,20 +576,14 @@ class FirestoreService extends GetxService {
       query = query.orderBy('created_at', descending: true).limit(limit);
 
       final snapshot = await query.get();
-      return snapshot.docs
-          .map((doc) => doc.data() as Map<String, dynamic>)
-          .toList();
+      return snapshot.docs.map((doc) => doc.data() as Map<String, dynamic>).toList();
     } catch (e) {
       _logger.e('[$_tag] Get alerts error: $e');
       return [];
     }
   }
 
-  Stream<List<Map<String, dynamic>>> getAlertsStream({
-    bool? unreadOnly,
-    String? severity,
-    int limit = 50,
-  }) {
+  Stream<List<Map<String, dynamic>>> getAlertsStream({bool? unreadOnly, String? severity, int limit = 50}) {
     var query = _firestore.collection('alerts') as Query;
 
     if (unreadOnly == true) {
@@ -487,9 +598,7 @@ class FirestoreService extends GetxService {
     return query
         .snapshots()
         .map((snapshot) {
-          return snapshot.docs
-              .map((doc) => doc.data() as Map<String, dynamic>)
-              .toList();
+          return snapshot.docs.map((doc) => doc.data() as Map<String, dynamic>).toList();
         })
         .handleError((e) {
           _logger.e('[$_tag] Get alerts stream error: $e');
@@ -509,10 +618,7 @@ class FirestoreService extends GetxService {
 
   Future<bool> markAllAlertsRead() async {
     try {
-      final snapshot = await _firestore
-          .collection('alerts')
-          .where('unread', isEqualTo: true)
-          .get();
+      final snapshot = await _firestore.collection('alerts').where('unread', isEqualTo: true).get();
 
       for (final doc in snapshot.docs) {
         await doc.reference.update({'unread': false});
@@ -540,11 +646,7 @@ class FirestoreService extends GetxService {
 
   Future<List<Map<String, dynamic>>> getByType(int days) async {
     try {
-      final snapshot = await _firestore
-          .collection('analytics')
-          .doc('by_type')
-          .collection('data')
-          .get();
+      final snapshot = await _firestore.collection('analytics').doc('by_type').collection('data').get();
       return snapshot.docs.map((doc) => doc.data()).toList();
     } catch (e) {
       _logger.e('[$_tag] Get by type error: $e');
@@ -554,11 +656,7 @@ class FirestoreService extends GetxService {
 
   Future<List<Map<String, dynamic>>> getBySeverity(int days) async {
     try {
-      final snapshot = await _firestore
-          .collection('analytics')
-          .doc('by_severity')
-          .collection('data')
-          .get();
+      final snapshot = await _firestore.collection('analytics').doc('by_severity').collection('data').get();
       return snapshot.docs.map((doc) => doc.data()).toList();
     } catch (e) {
       _logger.e('[$_tag] Get by severity error: $e');
@@ -568,12 +666,7 @@ class FirestoreService extends GetxService {
 
   Future<List<Map<String, dynamic>>> getTrend(int days) async {
     try {
-      final snapshot = await _firestore
-          .collection('analytics')
-          .doc('trend')
-          .collection('data')
-          .orderBy('date')
-          .get();
+      final snapshot = await _firestore.collection('analytics').doc('trend').collection('data').orderBy('date').get();
       return snapshot.docs.map((doc) => doc.data()).toList();
     } catch (e) {
       _logger.e('[$_tag] Get trend error: $e');
@@ -583,11 +676,7 @@ class FirestoreService extends GetxService {
 
   Future<List<Map<String, dynamic>>> getByCamera(int days) async {
     try {
-      final snapshot = await _firestore
-          .collection('analytics')
-          .doc('by_camera')
-          .collection('data')
-          .get();
+      final snapshot = await _firestore.collection('analytics').doc('by_camera').collection('data').get();
       return snapshot.docs.map((doc) => doc.data()).toList();
     } catch (e) {
       _logger.e('[$_tag] Get by camera error: $e');
@@ -606,17 +695,9 @@ class FirestoreService extends GetxService {
         return {'error': 'Not authenticated'};
       }
 
-      final doc = await _firestore
-          .collection('notification_settings')
-          .doc(currentUser.uid)
-          .get();
+      final doc = await _firestore.collection('notification_settings').doc(currentUser.uid).get();
 
-      return doc.data() ??
-          {
-            'notifyCriticalAlerts': true,
-            'notifyMediumAlerts': true,
-            'notifyLowAlerts': false,
-          };
+      return doc.data() ?? {'notifyCriticalAlerts': true, 'notifyMediumAlerts': true, 'notifyLowAlerts': false};
     } catch (e) {
       _logger.e('[$_tag] Get notification settings error: $e');
       return {'error': e.toString()};
@@ -630,10 +711,7 @@ class FirestoreService extends GetxService {
         return false;
       }
 
-      await _firestore
-          .collection('notification_settings')
-          .doc(currentUser.uid)
-          .set(settings, SetOptions(merge: true));
+      await _firestore.collection('notification_settings').doc(currentUser.uid).set(settings, SetOptions(merge: true));
       return true;
     } catch (e) {
       _logger.e('[$_tag] Update notification settings error: $e');
@@ -693,10 +771,7 @@ class FirestoreService extends GetxService {
 
   Future<bool> exportAnalytics(int days) async {
     try {
-      final snapshot = await _firestore
-          .collection('analytics')
-          .doc('summary')
-          .get();
+      final snapshot = await _firestore.collection('analytics').doc('summary').get();
       _logger.i('[$_tag] Exported analytics');
       return true;
     } catch (e) {

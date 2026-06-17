@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:construction_safety/app/core/extensions/theme_extensions.dart';
+import 'package:construction_safety/common/widgets/app_header.dart';
 import '../../../../data/models/camera_model.dart';
 import '../controllers/camera_management_controller.dart';
 
@@ -10,66 +12,28 @@ class CameraManagementView extends GetView<CameraManagementController> {
   @override
   Widget build(BuildContext context) {
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.dark.copyWith(
-        statusBarIconBrightness: Brightness.dark,
-        statusBarBrightness: Brightness.light,
-        statusBarColor: Colors.transparent,
-      ),
+      value: AppColor.statusBar,
       child: SafeArea(
         child: Scaffold(
-          backgroundColor: Colors.grey[50],
+          backgroundColor: AppColor.scaffoldBg,
           body: Column(
             children: [
-              // Header
-              _buildHeader(),
-              // Content
+              AppHeader(
+                title: 'Camera Management',
+                subtitle: 'Manage and monitor your site cameras',
+                showBack: true,
+                bottom: Column(
+                  children: [
+                    _buildSearchAndFilters(),
+                    const SizedBox(height: 16),
+                    _buildStats(),
+                  ],
+                ),
+              ),
               Expanded(child: _buildCameraList()),
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildHeader() {
-    return Container(
-      color: Colors.white,
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        children: [
-          // Back button and title
-          Row(
-            children: [
-              IconButton(
-                onPressed: () => Get.back(),
-                icon: const Icon(Icons.arrow_back, color: Colors.grey),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Camera Management',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.black87),
-                    ),
-                    Obx(
-                      () => Text(
-                        '${controller.cameras.length} cameras configured',
-                        style: const TextStyle(fontSize: 12, color: Colors.grey),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          _buildSearchAndFilters(),
-          const SizedBox(height: 16),
-          // Stats
-          _buildStats(),
-        ],
       ),
     );
   }
@@ -85,7 +49,7 @@ class CameraManagementView extends GetView<CameraManagementController> {
             contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Colors.grey),
+              borderSide: BorderSide(color: AppColor.borderColor),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
@@ -121,9 +85,9 @@ class CameraManagementView extends GetView<CameraManagementController> {
       selected: selected,
       showCheckmark: false,
       onSelected: (_) => controller.setStatusFilter(value),
-      backgroundColor: Colors.grey[100],
+      backgroundColor: AppColor.subtleBg,
       selectedColor: Colors.blue[100],
-      labelStyle: TextStyle(color: selected ? Colors.blue[700] : Colors.grey[600], fontSize: 12),
+      labelStyle: TextStyle(color: selected ? Colors.blue[700] : AppColor.textSecondary, fontSize: 12),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       side: BorderSide.none,
     );
@@ -134,44 +98,27 @@ class CameraManagementView extends GetView<CameraManagementController> {
       return Row(
         children: [
           Expanded(
-            child: _buildStatCard(
-              'Enabled',
-              '${controller.enabledCount}',
-              Colors.blue[50]!,
-              Colors.blue[200]!,
-              Colors.blue[700]!,
-            ),
+            child: _buildStatCard('Enabled', '${controller.enabledCount}', Colors.blue),
           ),
           const SizedBox(width: 8),
           Expanded(
-            child: _buildStatCard(
-              'Online',
-              '${controller.onlineCount}',
-              Colors.green[50]!,
-              Colors.green[200]!,
-              Colors.green[700]!,
-            ),
+            child: _buildStatCard('Online', '${controller.onlineCount}', Colors.green),
           ),
           const SizedBox(width: 8),
           Expanded(
-            child: _buildStatCard(
-              'Disabled',
-              '${controller.disabledCount}',
-              Colors.red[50]!,
-              Colors.red[200]!,
-              Colors.red[700]!,
-            ),
+            child: _buildStatCard('Disabled', '${controller.disabledCount}', Colors.red),
           ),
         ],
       );
     });
   }
 
-  Widget _buildStatCard(String title, String value, Color bgColor, Color borderColor, Color textColor) {
+  Widget _buildStatCard(String title, String value, Color base) {
+    final textColor = AppColor.accentText(base);
     return Container(
       decoration: BoxDecoration(
-        color: bgColor,
-        border: Border.all(color: borderColor),
+        color: AppColor.tintedSurface(base),
+        border: Border.all(color: AppColor.accentBorder(base)),
         borderRadius: BorderRadius.circular(12),
       ),
       padding: const EdgeInsets.all(8),
@@ -206,9 +153,9 @@ class CameraManagementView extends GetView<CameraManagementController> {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColor.cardBg,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey[200]!),
+        border: Border.all(color: AppColor.borderColor),
       ),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -221,10 +168,11 @@ class CameraManagementView extends GetView<CameraManagementController> {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: isOnline ? Colors.green[100] : Colors.red[100],
+                    color: isOnline ? AppColor.accentBadgeBg(Colors.green) : AppColor.accentBadgeBg(Colors.red),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Icon(Icons.camera_alt, color: isOnline ? Colors.green[600] : Colors.red[600], size: 20),
+                  child: Icon(Icons.camera_alt,
+                      color: isOnline ? AppColor.accentText(Colors.green) : AppColor.accentText(Colors.red), size: 20),
                 ),
                 const SizedBox(width: 12),
                 // Camera info
@@ -236,7 +184,7 @@ class CameraManagementView extends GetView<CameraManagementController> {
                         children: [
                           Text(
                             camera.name,
-                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.black87),
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColor.textPrimary),
                           ),
                           const SizedBox(width: 8),
                           Row(
@@ -259,9 +207,9 @@ class CameraManagementView extends GetView<CameraManagementController> {
                         ],
                       ),
                       const SizedBox(height: 2),
-                      Text(camera.zone, style: const TextStyle(fontSize: 14, color: Colors.grey)),
+                      Text(camera.zone, style: TextStyle(fontSize: 14, color: AppColor.textSecondary)),
                       const SizedBox(height: 2),
-                      Text('ID: ${camera.id}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                      Text('ID: ${camera.id}', style: TextStyle(fontSize: 12, color: AppColor.textSecondary)),
                     ],
                   ),
                 ),

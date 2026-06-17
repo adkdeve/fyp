@@ -2,6 +2,8 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:construction_safety/utils/helpers/snackbar.dart';
+import 'package:construction_safety/app/core/extensions/theme_extensions.dart';
 import '../../../../data/models/violation_model.dart';
 import '../../../../data/services/firestore_service.dart';
 import '../../alerts/controllers/alerts_controller.dart';
@@ -45,9 +47,9 @@ class ViolationDetailController extends GetxController {
       if (Get.isRegistered<HistoryController>()) {
         Get.find<HistoryController>().applyViolationUpdate(updated);
       }
-      Get.snackbar('Resolved', 'Violation marked as resolved', snackPosition: SnackPosition.BOTTOM);
+      SnackBarUtils.showSnackBar('Violation marked as resolved', title: 'Resolved');
     } catch (e) {
-      Get.snackbar('Error', e.toString(), snackPosition: SnackPosition.BOTTOM);
+      SnackBarUtils.showError(e.toString(), title: 'Error');
     } finally {
       isResolving.value = false;
     }
@@ -71,9 +73,9 @@ class ViolationDetailController extends GetxController {
       if (Get.isRegistered<HistoryController>()) {
         Get.find<HistoryController>().applyViolationUpdate(updated);
       }
-      Get.snackbar('Updated', 'Marked as false positive', snackPosition: SnackPosition.BOTTOM);
+      SnackBarUtils.showSnackBar('Marked as false positive', title: 'Updated');
     } catch (e) {
-      Get.snackbar('Error', e.toString(), snackPosition: SnackPosition.BOTTOM);
+      SnackBarUtils.showError(e.toString(), title: 'Error');
     } finally {
       isResolving.value = false;
     }
@@ -97,7 +99,7 @@ Description: ${v.description}
 Confidence: ${v.confidence ?? 0}
 Snapshot: ${v.imageUrl ?? ''}
 ''');
-    Get.snackbar('Report Saved', file.path, snackPosition: SnackPosition.BOTTOM);
+    SnackBarUtils.showSnackBar(file.path, title: 'Report Saved');
   }
 
   void handleShare() {
@@ -113,19 +115,17 @@ Snapshot: ${v.imageUrl ?? ''}
   }
 
   Map<String, dynamic> getSeverityConfig(ViolationSeverity severity) {
-    switch (severity) {
-      case ViolationSeverity.high:
-        return {'bg': Colors.red[50]!, 'border': Colors.red, 'text': Colors.red[700]!, 'badge': Colors.red[100]!};
-      case ViolationSeverity.medium:
-        return {
-          'bg': Colors.yellow[50]!,
-          'border': Colors.orange,
-          'text': Colors.orange[700]!,
-          'badge': Colors.orange[100]!,
-        };
-      case ViolationSeverity.low:
-        return {'bg': Colors.blue[50]!, 'border': Colors.blue, 'text': Colors.blue[700]!, 'badge': Colors.blue[100]!};
-    }
+    final Color base = severity == ViolationSeverity.high
+        ? Colors.red
+        : severity == ViolationSeverity.medium
+            ? Colors.orange
+            : Colors.blue;
+    return {
+      'bg': AppColor.tintedSurface(base),
+      'border': AppColor.accentBorder(base),
+      'text': AppColor.accentText(base),
+      'badge': AppColor.accentBadgeBg(base),
+    };
   }
 
   List<String> getRecommendedActions(ViolationType type) {

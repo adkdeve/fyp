@@ -2,6 +2,7 @@ import 'package:construction_safety/app/modules/main/camera_feed/bindings/camera
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:construction_safety/app/core/extensions/theme_extensions.dart';
 
 import '../../../../data/models/camera_model.dart';
 import '../../camera_feed/views/camera_feed_view.dart';
@@ -22,35 +23,28 @@ class LiveFeedCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Status colors
-    final Map<String, dynamic> statusConfig = {
-      "safe": {
-        "bg": Colors.green.shade50,
-        "border": Colors.green.shade200,
-        "badgeBg": Colors.green.shade100,
-        "badgeText": Colors.green.shade700,
-        "text": "Clear",
-        "icon": LucideIcons.circleCheck,
-      },
-      "warning": {
-        "bg": Colors.yellow.shade50,
-        "border": Colors.yellow.shade200,
-        "badgeBg": Colors.yellow.shade100,
-        "badgeText": Colors.yellow.shade700,
-        "text": "Warning",
-        "icon": LucideIcons.triangleAlert,
-      },
-      "critical": {
-        "bg": Colors.red.shade50,
-        "border": Colors.red.shade200,
-        "badgeBg": Colors.red.shade100,
-        "badgeText": Colors.red.shade700,
-        "text": "Critical",
-        "icon": LucideIcons.circleAlert,
-      },
+    // Status accent (theme-aware: light tint in light mode, dark tint in dark mode)
+    final Color base = status == 'safe'
+        ? Colors.green
+        : status == 'warning'
+            ? Colors.amber
+            : Colors.red;
+    final Map<String, dynamic> config = {
+      "bg": AppColor.tintedSurface(base),
+      "border": AppColor.accentBorder(base),
+      "badgeBg": AppColor.accentBadgeBg(base),
+      "badgeText": AppColor.accentText(base),
+      "text": status == 'safe'
+          ? 'Clear'
+          : status == 'warning'
+              ? 'Warning'
+              : 'Critical',
+      "icon": status == 'safe'
+          ? LucideIcons.circleCheck
+          : status == 'warning'
+              ? LucideIcons.triangleAlert
+              : LucideIcons.circleAlert,
     };
-
-    final config = statusConfig[status]!;
 
     return GestureDetector(
       onTap: () => Get.to(
@@ -75,9 +69,12 @@ class LiveFeedCard extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    Icon(LucideIcons.video, size: 18),
+                    Icon(LucideIcons.video, size: 18, color: AppColor.textPrimary),
                     const SizedBox(width: 5),
-                    Text(camera.zone),
+                    Text(
+                      camera.zone,
+                      style: TextStyle(color: AppColor.textPrimary, fontWeight: FontWeight.w600),
+                    ),
                   ],
                 ),
                 Container(
@@ -111,11 +108,11 @@ class LiveFeedCard extends StatelessWidget {
               children: [
                 Text(
                   "Camera #${camera.id}",
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+                  style: TextStyle(fontSize: 12, color: AppColor.textSecondary),
                 ),
                 Text(
                   "${camera.fpsTarget} FPS target",
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+                  style: TextStyle(fontSize: 12, color: AppColor.textSecondary),
                 ),
               ],
             ),
@@ -128,13 +125,13 @@ class LiveFeedCard extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 12,
                     color: camera.enabled
-                        ? Colors.green.shade700
-                        : Colors.grey.shade700,
+                        ? AppColor.accentText(Colors.green)
+                        : AppColor.textSecondary,
                   ),
                 ),
                 Text(
                   '$openViolations open violation${openViolations == 1 ? '' : 's'}',
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+                  style: TextStyle(fontSize: 12, color: AppColor.textSecondary),
                 ),
               ],
             ),
@@ -152,7 +149,7 @@ class LiveFeedCard extends StatelessWidget {
               width: double.infinity,
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.7),
+                color: AppColor.subtleBg,
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Row(
@@ -163,7 +160,7 @@ class LiveFeedCard extends StatelessWidget {
                           ? 'Tap to open the live feed for this camera.'
                           : 'Enable this camera in Camera Management to monitor it.',
                       style: TextStyle(
-                        color: Colors.grey.shade800,
+                        color: AppColor.textSecondary,
                         fontSize: 12,
                       ),
                     ),
@@ -172,7 +169,7 @@ class LiveFeedCard extends StatelessWidget {
                   Icon(
                     LucideIcons.arrowRight,
                     size: 16,
-                    color: Colors.grey.shade700,
+                    color: AppColor.textSecondary,
                   ),
                 ],
               ),

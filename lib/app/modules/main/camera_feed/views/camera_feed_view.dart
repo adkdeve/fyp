@@ -34,6 +34,8 @@ class CameraFeedView extends GetView<CameraFeedController> {
                     child: Column(
                       children: [
                         _buildLiveFeed(),
+                        const SizedBox(height: 12),
+                        _buildZoneControls(),
                         const SizedBox(height: 16),
                         _buildZoomControls(),
                         const SizedBox(height: 16),
@@ -188,29 +190,20 @@ class CameraFeedView extends GetView<CameraFeedController> {
               return Stack(
                 fit: StackFit.expand,
                 children: [
-                  LayoutBuilder(
-                    builder: (context, constraints) {
-                      return OverflowBox(
-                        minWidth: 0,
-                        minHeight: 0,
-                        maxWidth: constraints.maxHeight,
-                        maxHeight: constraints.maxWidth,
-                        child: Center(
-                          child: RotatedBox(
-                            quarterTurns: 0,
-                            child: SizedBox(
-                              width: constraints.maxHeight,
-                              height: constraints.maxWidth,
-                              child: Image.memory(
-                                bytes,
-                                gaplessPlayback: true,
-                                fit: BoxFit.cover,
-                              ),
-                            ),
-                          ),
+                  // Poora frame landscape mein fit (cut nahi) + zoom apply
+                  Container(
+                    color: Colors.black,
+                    alignment: Alignment.center,
+                    child: Obx(
+                      () => Transform.scale(
+                        scale: controller.zoom.value,
+                        child: Image.memory(
+                          bytes,
+                          gaplessPlayback: true,
+                          fit: BoxFit.contain,
                         ),
-                      );
-                    },
+                      ),
+                    ),
                   ),
                   Positioned(top: 10, left: 10, child: _liveBadge()),
                   Positioned(
@@ -229,6 +222,8 @@ class CameraFeedView extends GetView<CameraFeedController> {
                       ),
                     ),
                   ),
+                  // Safe zone polygon overlay + draw taps
+                  Positioned.fill(child: _zoneOverlay()),
                 ],
               );
             }
@@ -459,4 +454,217 @@ class CameraFeedView extends GetView<CameraFeedController> {
       ),
     );
   }
+
+  // ── Safe Zone overlay + controls ─────────────────────────────────────────────
+  Widget _zoneOverlay() {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final size = Size(constraints.maxWidth, constraints.maxHeight);
+        return Obx(() {
+          final drawing = controller.isDrawingZone.value;
+          final pts = controller.zonePoints.toList();
+          return GestureDetector(
+            behavior: drawing ? HitTestBehavior.opaque : HitTestBehavior.translucent,
+            onTapDown: drawing
+                ? (d) {
+                    controller.addZonePoint(
+                      Offset(
+                        (d.localPosition.dx / size.width).clamp(0.0, 1.0),
+                        (d.localPosition.dy / size.height).clamp(0.0, 1.0),
+                      ),
+                    );
+                  }
+                : null,
+            child: CustomPaint(
+              size: size,
+              painter: ZonePainter(points: pts, drawing: drawing),
+            ),
+          );
+        });
+      },
+    );
+  }
+
+  Widget _buildZoneControls() {
+    return Obx(() {
+      final drawing = controller.isDrawingZone.value;
+      final hasPoints = controller.zonePoints.isNotEmpty;
+
+      if (!drawing) {
+        return Row(
+          children: [
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: controller.startDrawingZone,
+                icon: const Icon(Icons.gesture, size: 16, color: Colors.white),
+                label: Text(
+                  hasPoints ? 'Edit Safe Zone' : 'Draw Safe Zone',
+                  style: const TextStyle(color: Colors.white),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF2563EB),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+              ),
+            ),
+            if (hasPoints) ...[
+              const SizedBox(width: 8),
+              OutlinedButton.icon(
+                onPressed: controller.clearZone,
+                icon: const Icon(Icons.delete_outline, size: 16, color: Color(0xFFEF4444)),
+                label: const Text('Remove', style: TextStyle(color: Color(0xFFEF4444))),
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: Color(0xFF333333)),
+                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+                ),
+              ),
+            ],
+          ],
+        );
+      }
+
+      return Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1A1A1A),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFF2563EB)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: const [
+                Icon(Icons.draw, size: 16, color: Color(0xFF3B82F6)),
+                SizedBox(width: 6),
+                Text(
+                  'Draw Restricted Zone',
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Obx(() {
+              final n = controller.zonePoints.length;
+              final msg = n < 3
+                  ? 'Tap on the feed to place points (${3 - n} more needed)'
+                  : '$n-point zone — tap Save to confirm';
+              return Text(msg, style: const TextStyle(color: Color(0xFFAAAAAA), fontSize: 12));
+            }),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                _zoneToolBtn(Icons.undo, 'Undo', controller.undoZonePoint),
+                const SizedBox(width: 8),
+                _zoneToolBtn(Icons.clear, 'Clear', controller.clearZonePoints),
+                const SizedBox(width: 8),
+                _zoneToolBtn(Icons.close, 'Cancel', controller.cancelDrawingZone),
+                const Spacer(),
+                Obx(
+                  () => ElevatedButton.icon(
+                    onPressed: controller.isZoneSaving.value ? null : controller.saveZone,
+                    icon: controller.isZoneSaving.value
+                        ? const SizedBox(
+                            width: 14,
+                            height: 14,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                          )
+                        : const Icon(Icons.check, size: 16, color: Colors.white),
+                    label: const Text('Save', style: TextStyle(color: Colors.white)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF16A34A),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+    });
+  }
+
+  Widget _zoneToolBtn(IconData icon, String label, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        decoration: BoxDecoration(color: const Color(0xFF2A2A2A), borderRadius: BorderRadius.circular(8)),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 14, color: Colors.white),
+            const SizedBox(width: 4),
+            Text(label, style: const TextStyle(color: Colors.white, fontSize: 12)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Camera frame ke upar restricted-zone polygon draw karta hai (normalized points).
+class ZonePainter extends CustomPainter {
+  final List<Offset> points; // normalized 0..1
+  final bool drawing;
+
+  ZonePainter({required this.points, required this.drawing});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (points.isEmpty) return;
+
+    final pix = points.map((p) => Offset(p.dx * size.width, p.dy * size.height)).toList();
+
+    final fill = Paint()
+      ..color = const Color(0x383B82F6)
+      ..style = PaintingStyle.fill;
+    final stroke = Paint()
+      ..color = const Color(0xFF3B82F6)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.5;
+
+    final path = Path()..moveTo(pix.first.dx, pix.first.dy);
+    for (var i = 1; i < pix.length; i++) {
+      path.lineTo(pix[i].dx, pix[i].dy);
+    }
+    if (pix.length >= 3) {
+      path.close();
+      canvas.drawPath(path, fill);
+    }
+    canvas.drawPath(path, stroke);
+
+    // Vertex dots (pehla dot cyan = closing point)
+    for (var i = 0; i < pix.length; i++) {
+      final r = i == 0 ? 7.0 : 5.0;
+      canvas.drawCircle(pix[i], r, Paint()..color = i == 0 ? const Color(0xFF06B6D4) : const Color(0xFF3B82F6));
+      canvas.drawCircle(
+        pix[i],
+        r,
+        Paint()
+          ..color = Colors.white
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2,
+      );
+    }
+
+    // "RESTRICTED ZONE" label center mein
+    if (pix.length >= 3) {
+      final cx = pix.map((p) => p.dx).reduce((a, b) => a + b) / pix.length;
+      final cy = pix.map((p) => p.dy).reduce((a, b) => a + b) / pix.length;
+      final tp = TextPainter(
+        text: const TextSpan(
+          text: 'RESTRICTED ZONE',
+          style: TextStyle(color: Color(0xFF93C5FD), fontSize: 12, fontWeight: FontWeight.bold),
+        ),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      tp.paint(canvas, Offset(cx - tp.width / 2, cy - tp.height / 2));
+    }
+  }
+
+  @override
+  bool shouldRepaint(ZonePainter old) => old.points != points || old.drawing != drawing;
 }

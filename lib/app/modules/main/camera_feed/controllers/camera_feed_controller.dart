@@ -1,9 +1,12 @@
 import 'dart:async';
-import 'dart:typed_data';
+import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
+import 'package:construction_safety/utils/helpers/snackbar.dart';
 
 import '../../../../core/values/apis_url.dart';
 import '../../../../data/models/camera_model.dart';
@@ -18,6 +21,12 @@ class CameraFeedController extends GetxController {
   final frameBytes = Rx<Uint8List?>(null);
   final isStreamLoading = true.obs;
   final streamError = false.obs;
+
+  // ── Safe Zone (restricted zone polygon) ────────────────────────────────────
+  final isDrawingZone = false.obs;
+  final isZoneSaving = false.obs;
+  // Points NORMALIZED 0..1 (frame width/height ke fraction) — resolution independent.
+  final zonePoints = <Offset>[].obs;
 
   Timer? _clockTimer;
   Timer? _frameTimer;
@@ -47,6 +56,7 @@ class CameraFeedController extends GetxController {
     _clockTimer = Timer.periodic(const Duration(seconds: 1), (_) => _updateTime());
     _updateTime();
     _initStream();
+    _loadZone();
   }
 
   void _updateTime() {
@@ -135,36 +145,181 @@ class CameraFeedController extends GetxController {
 
   void resetZoom() => zoom.value = 1.0;
 
+  /// Current live frame ko JPEG file ke tor par save karta hai.
   Future<void> takeSnapshot() async {
-    final camId = selectedCamera.value?.id;
-    if (camId == null) return;
-    Get.snackbar('Snapshot', 'Snapshot functionality pending implementation', snackPosition: SnackPosition.BOTTOM);
+    final bytes = frameBytes.value;
+    if (bytes == null || bytes.isEmpty) {
+      SnackBarUtils.showError('No live frame available to capture yet.', title: 'Snapshot');
+      return;
+    }
+    try {
+      final camId = selectedCamera.value?.id ?? 'camera';
+      final ts = DateTime.now().millisecondsSinceEpoch;
+      final file = File('${Directory.systemTemp.path}${Platform.pathSeparator}snapshot_${camId}_$ts.jpg');
+      await file.writeAsBytes(bytes);
+      SnackBarUtils.showSnackBar(file.path, title: 'Snapshot Saved');
+    } catch (e) {
+      SnackBarUtils.showError(e.toString(), title: 'Snapshot Failed');
+    }
   }
 
+  /// Fullscreen landscape live view — frame poora fit hota hai (cut nahi), zoom apply hota hai.
   void enterFullscreen() {
-    final bytes = frameBytes.value;
-    if (bytes == null) return;
+    if (frameBytes.value == null) return;
+
+    // Landscape mein switch karo + immersive (status/nav bar hide)
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+    ]);
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersive);
+
     Get.dialog(
       Dialog(
         backgroundColor: Colors.black,
         insetPadding: EdgeInsets.zero,
         child: Stack(
+          fit: StackFit.expand,
           children: [
-            Center(
-              child: InteractiveViewer(child: RotatedBox(quarterTurns: 0, child: Image.memory(bytes))),
-            ),
+            Obx(() {
+              final b = frameBytes.value;
+              if (b == null) return const SizedBox.shrink();
+              return InteractiveViewer(
+                minScale: 1,
+                maxScale: 4,
+                child: Center(
+                  child: Transform.scale(
+                    scale: zoom.value,
+                    child: Image.memory(b, gaplessPlayback: true, fit: BoxFit.contain),
+                  ),
+                ),
+              );
+            }),
             Positioned(
               top: 20,
               right: 20,
               child: IconButton(
                 onPressed: Get.back,
-                icon: const Icon(Icons.close, color: Colors.white),
+                icon: const Icon(Icons.close, color: Colors.white, size: 28),
               ),
             ),
           ],
         ),
       ),
-    );
+      barrierColor: Colors.black,
+    ).then((_) => _exitFullscreen());
+  }
+
+  void _exitFullscreen() {
+    // Portrait par wapas
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+    ]);
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+  }
+
+  // ── Safe Zone ───────────────────────────────────────────────────────────────
+  /// Backend se mojooda zone polygon load karo (normalized points).
+  Future<void> _loadZone() async {
+    final id = selectedCamera.value?.id;
+    if (id == null) return;
+    try {
+      final res = await _client
+          .get(Uri.parse(ApisUrl.safeZoneGet(id)), headers: {'bypass-tunnel-reminder': 'true'})
+          .timeout(const Duration(seconds: 8));
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body) as Map<String, dynamic>;
+        final pts = data['points'] as List?;
+        if (pts != null) {
+          zonePoints.assignAll(pts.map<Offset>((p) {
+            if (p is List && p.length >= 2) {
+              return Offset((p[0] as num).toDouble(), (p[1] as num).toDouble());
+            }
+            if (p is Map) {
+              return Offset((p['x'] as num).toDouble(), (p['y'] as num).toDouble());
+            }
+            return Offset.zero;
+          }).toList());
+        }
+      }
+    } catch (_) {
+      // Non-fatal — zone na mile to khali polygon
+    }
+  }
+
+  void startDrawingZone() {
+    zoom.value = 1.0; // 1x par draw karo taake coords frame se match karein
+    isDrawingZone.value = true;
+  }
+
+  void cancelDrawingZone() {
+    isDrawingZone.value = false;
+    _loadZone(); // saved zone par wapas
+  }
+
+  void addZonePoint(Offset normalized) {
+    if (!isDrawingZone.value) return;
+    zonePoints.add(normalized);
+  }
+
+  void undoZonePoint() {
+    if (zonePoints.isNotEmpty) zonePoints.removeLast();
+  }
+
+  void clearZonePoints() => zonePoints.clear();
+
+  /// Polygon backend par save karo (web jaisा — normalized {x,y}).
+  Future<void> saveZone() async {
+    final id = selectedCamera.value?.id;
+    if (id == null) return;
+    if (zonePoints.length < 3) {
+      SnackBarUtils.showError('At least 3 points needed to define a zone.', title: 'Safe Zone');
+      return;
+    }
+    isZoneSaving.value = true;
+    try {
+      final body = jsonEncode({
+        'camera_id': id.toString(),
+        'points': zonePoints.map((p) => {'x': p.dx, 'y': p.dy}).toList(),
+      });
+      final res = await _client
+          .post(
+            Uri.parse(ApisUrl.safeZoneSet),
+            headers: {'Content-Type': 'application/json', 'bypass-tunnel-reminder': 'true'},
+            body: body,
+          )
+          .timeout(const Duration(seconds: 12));
+      if (res.statusCode == 200) {
+        isDrawingZone.value = false;
+        SnackBarUtils.showSnackBar(
+          'Restricted zone saved for ${selectedCamera.value?.name ?? 'camera'}.',
+          title: 'Safe Zone Set',
+        );
+      } else {
+        SnackBarUtils.showError('Server returned ${res.statusCode}', title: 'Safe Zone Failed');
+      }
+    } catch (e) {
+      SnackBarUtils.showError(e.toString(), title: 'Safe Zone Failed');
+    } finally {
+      isZoneSaving.value = false;
+    }
+  }
+
+  /// Zone backend se hata do.
+  Future<void> clearZone() async {
+    final id = selectedCamera.value?.id;
+    if (id == null) return;
+    try {
+      await _client
+          .delete(Uri.parse(ApisUrl.safeZoneClear(id)), headers: {'bypass-tunnel-reminder': 'true'})
+          .timeout(const Duration(seconds: 8));
+      zonePoints.clear();
+      isDrawingZone.value = false;
+      SnackBarUtils.showSnackBar('Restricted zone removed.', title: 'Safe Zone Cleared');
+    } catch (e) {
+      SnackBarUtils.showError(e.toString(), title: 'Error');
+    }
   }
 
   bool get hasDetection => false;
@@ -174,6 +329,8 @@ class CameraFeedController extends GetxController {
     _clockTimer?.cancel();
     _frameTimer?.cancel();
     _client.close();
+    // Agar fullscreen mein chhod kar gaye to portrait restore kar do
+    _exitFullscreen();
     super.onClose();
   }
 }

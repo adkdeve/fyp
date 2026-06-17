@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:construction_safety/app/core/extensions/theme_extensions.dart';
+import 'package:construction_safety/common/widgets/app_header.dart';
 
 import '../controllers/analytics_controller.dart';
 
@@ -11,43 +13,43 @@ class AnalyticsView extends GetView<AnalyticsController> {
   @override
   Widget build(BuildContext context) {
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.dark.copyWith(
-        statusBarIconBrightness: Brightness.dark,
-        statusBarBrightness: Brightness.light,
-        statusBarColor: Colors.transparent,
-      ),
+      value: AppColor.statusBar,
       child: SafeArea(
         child: Scaffold(
-          backgroundColor: Colors.grey[50],
+          backgroundColor: AppColor.scaffoldBg,
           body: Column(
             children: [
-              // Header
-              _buildHeader(),
-              // Content
+              AppHeader(
+                title: 'Safety Analytics',
+                subtitle: 'Performance insights and trends',
+                actions: [
+                  OutlinedButton.icon(
+                    onPressed: controller.handleExport,
+                    icon: const Icon(Icons.download_rounded, size: 16),
+                    label: const Text('Export CSV'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColor.textPrimary,
+                      side: BorderSide(color: AppColor.borderColor),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    ),
+                  ),
+                ],
+                bottom: _buildTimeRangeFilter(),
+              ),
               Expanded(
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.all(16),
                   child: Column(
                     children: [
-                      // Key Metrics
-                      _buildKeyMetrics(),
+                      _buildMetricCards(),
                       const SizedBox(height: 16),
-                      // Weekly Violations Chart
-                      _buildViolationsChart(),
+                      _buildComplianceCard(),
                       const SizedBox(height: 16),
-                      // Violation Types Distribution
-                      _buildViolationTypesChart(),
+                      _buildViolationsOverTime(),
                       const SizedBox(height: 16),
-                      // Compliance Trend
-                      _buildComplianceTrend(),
+                      _buildViolationTypes(),
                       const SizedBox(height: 16),
-                      // Zone Performance
-                      _buildZonePerformance(context), // Pass context here
-                      const SizedBox(height: 16),
-                      // AI Detection Performance
-                      _buildAIDetectionPerformance(
-                        context,
-                      ), // Pass context here
+                      _buildCamerasByViolations(),
                     ],
                   ),
                 ),
@@ -59,96 +61,52 @@ class AnalyticsView extends GetView<AnalyticsController> {
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildTimeRangeFilter() {
     return Container(
-      color: Colors.white,
-      padding: const EdgeInsets.all(24),
-      child: Column(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: AppColor.subtleBg,
+        borderRadius: BorderRadius.circular(9999),
+      ),
+      child: Row(
         children: [
-          // Title and Export Button
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Safety Analytics',
-                    style: Get.textTheme.titleLarge?.copyWith(
-                      color: Colors.grey[900],
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Performance insights and trends',
-                    style: Get.textTheme.bodyMedium?.copyWith(
-                      color: Colors.grey[600],
-                    ),
-                  ),
-                ],
-              ),
-              IconButton(
-                onPressed: controller.handleExport,
-                style: IconButton.styleFrom(
-                  backgroundColor: Colors.blue[600],
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.all(12),
-                ),
-                icon: const Icon(Icons.download_rounded),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          // Time Range Filter
-          _buildTimeRangeFilter(),
+          _rangeButton('Week', 'week'),
+          _rangeButton('Month', 'month'),
+          _rangeButton('Year', 'year'),
         ],
       ),
     );
   }
 
-  Widget _buildTimeRangeFilter() {
-    return Row(
-      children: [
-        _buildTimeRangeButton('Week', 'week'),
-        const SizedBox(width: 8),
-        _buildTimeRangeButton('Month', 'month'),
-        const SizedBox(width: 8),
-        _buildTimeRangeButton('Year', 'year'),
-      ],
-    );
-  }
-
-  Widget _buildTimeRangeButton(String label, String value) {
+  Widget _rangeButton(String label, String value) {
     return Expanded(
       child: Obx(() {
-        final isSelected = controller.timeRange.value == value;
-        return ElevatedButton(
-          onPressed: () => controller.setTimeRange(value),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: isSelected ? Colors.blue[100] : Colors.grey[100],
-            foregroundColor: isSelected ? Colors.blue[700] : Colors.grey[600],
-            textStyle: const TextStyle(fontSize: 12),
-            padding: const EdgeInsets.symmetric(vertical: 12),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
+        final selected = controller.timeRange.value == value;
+        return GestureDetector(
+          onTap: () => controller.setTimeRange(value),
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            decoration: BoxDecoration(
+              color: selected ? const Color(0xFF4F46E5) : Colors.transparent,
+              borderRadius: BorderRadius.circular(9999),
             ),
-            elevation: 0,
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.calendar_today, size: 14),
-              const SizedBox(width: 4),
-              Text(label),
-            ],
+            child: Text(
+              label,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: selected ? Colors.white : AppColor.textSecondary,
+              ),
+            ),
           ),
         );
       }),
     );
   }
 
-  Widget _buildKeyMetrics() {
+  // ── Metric cards ─────────────────────────────────────────────────────────────
+  Widget _buildMetricCards() {
     return Obx(
       () => GridView(
         shrinkWrap: true,
@@ -157,620 +115,333 @@ class AnalyticsView extends GetView<AnalyticsController> {
           crossAxisCount: 2,
           crossAxisSpacing: 12,
           mainAxisSpacing: 12,
-          childAspectRatio: 1.2,
+          childAspectRatio: 1.5,
         ),
         children: [
-          _buildMetricCard(
-            'Compliance Rate',
-            '${controller.complianceRate.value}%',
-            'Enabled cameras without open violations',
-            Colors.green,
-            Icons.trending_up,
-            () => controller.showMetricDetails('compliance'),
-          ),
-          _buildMetricCard(
-            'Total Violations',
-            '${controller.totalViolations.value}',
-            '${controller.activeViolations.value} currently open',
-            Colors.red,
-            Icons.trending_down,
-            () => controller.showMetricDetails('violations'),
-          ),
-          _buildMetricCard(
-            'Avg Response Time',
-            '${controller.avgResponseTime.value.toStringAsFixed(1)}s',
-            'Detection to alert',
-            Colors.blue,
-            Icons.bar_chart,
-            () => controller.showMetricDetails('response'),
-          ),
-          _buildMetricCard(
-            'Active Zones',
-            '${controller.activeZones.value}',
-            'All zones monitored',
-            Colors.purple,
-            Icons.warning_amber,
-            () => controller.showMetricDetails('zones'),
-          ),
+          _metricCard('Total Violations', '${controller.totalViolations}', Icons.warning_amber_rounded,
+              const [Color(0xFFF43F5E), Color(0xFFEC4899)]),
+          _metricCard('High Priority', '${controller.highCount}', Icons.shield_outlined,
+              const [Color(0xFFEF4444), Color(0xFFE11D48)]),
+          _metricCard('Resolved', '${controller.resolvedCount}', Icons.check_circle_outline,
+              const [Color(0xFF10B981), Color(0xFF14B8A6)]),
+          _metricCard('Active Cameras', '${controller.activeCameras}', Icons.videocam_outlined,
+              const [Color(0xFF0EA5E9), Color(0xFF2563EB)]),
         ],
       ),
     );
   }
 
-  Widget _buildMetricCard(
-    String title,
-    String value,
-    String subtitle,
-    Color color,
-    IconData icon,
-    VoidCallback onTap,
-  ) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [color, color.withOpacity(0.8)],
-          ),
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: color.withOpacity(0.3),
-              blurRadius: 8,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
+  Widget _metricCard(String label, String value, IconData icon, List<Color> gradient) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: gradient),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [BoxShadow(color: gradient.last.withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 4))],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  Icon(icon, color: Colors.white, size: 16),
-                ],
+              Expanded(
+                child: Text(label,
+                    style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w500)),
               ),
-              const SizedBox(height: 8),
-              Text(
-                value,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                subtitle,
-                style: TextStyle(
-                  color: Colors.white.withOpacity(0.8),
-                  fontSize: 10,
-                ),
-              ),
+              Icon(icon, color: Colors.white.withOpacity(0.9), size: 20),
             ],
           ),
-        ),
+          Text(value, style: const TextStyle(color: Colors.white, fontSize: 30, fontWeight: FontWeight.bold)),
+        ],
       ),
     );
   }
 
-  Widget _buildViolationsChart() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey[200]!),
-      ),
+  // ── Compliance rate ──────────────────────────────────────────────────────────
+  Widget _buildComplianceCard() {
+    return _card(
+      child: Obx(() {
+        final pct = controller.compliancePct;
+        final color = pct >= 80
+            ? const Color(0xFF10B981)
+            : pct >= 60
+                ? const Color(0xFFF59E0B)
+                : const Color(0xFFEF4444);
+        return Row(
+          children: [
+            SizedBox(
+              height: 88,
+              width: 88,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  SizedBox(
+                    height: 88,
+                    width: 88,
+                    child: CircularProgressIndicator(
+                      value: 1,
+                      strokeWidth: 8,
+                      valueColor: AlwaysStoppedAnimation(AppColor.borderColor),
+                    ),
+                  ),
+                  SizedBox(
+                    height: 88,
+                    width: 88,
+                    child: CircularProgressIndicator(
+                      value: pct / 100,
+                      strokeWidth: 8,
+                      strokeCap: StrokeCap.round,
+                      valueColor: AlwaysStoppedAnimation(color),
+                    ),
+                  ),
+                  Text('$pct%',
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColor.textPrimary)),
+                ],
+              ),
+            ),
+            const SizedBox(width: 20),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Compliance Rate',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColor.textPrimary)),
+                  const SizedBox(height: 4),
+                  Text('Based on ${controller.totalViolations} detection(s) in this period',
+                      style: TextStyle(fontSize: 12, color: AppColor.textSecondary)),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      _sevPill('${controller.highCount} high', const Color(0xFFF43F5E)),
+                      const SizedBox(width: 12),
+                      _sevPill('${controller.mediumCount} medium', const Color(0xFFF59E0B)),
+                      const SizedBox(width: 12),
+                      _sevPill('${controller.lowCount} low', const Color(0xFF3B82F6)),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        );
+      }),
+    );
+  }
+
+  Widget _sevPill(String text, Color color) {
+    return Text(text, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: color));
+  }
+
+  // ── Violations over time (bar chart) ─────────────────────────────────────────
+  Widget _buildViolationsOverTime() {
+    return _card(
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Obx(
-                () => Text(
-                  '${controller.timeRange.value == "week"
-                      ? "Weekly"
-                      : controller.timeRange.value == "month"
-                      ? "Monthly"
-                      : "Yearly"} Violations',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black87,
-                  ),
-                ),
-              ),
-              const Icon(Icons.bar_chart, color: Colors.grey, size: 20),
+              Text('Violations Over Time',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColor.textPrimary)),
+              Obx(() => Text(controller.timeRange.value.toUpperCase(),
+                  style: TextStyle(fontSize: 11, letterSpacing: 0.5, color: AppColor.textSecondary))),
             ],
           ),
           const SizedBox(height: 16),
-          Obx(
-            () => SizedBox(
+          Obx(() {
+            final data = controller.timeSeries;
+            if (data.isEmpty) {
+              return SizedBox(
+                height: 180,
+                child: Center(
+                  child: Text('No violations in this period', style: TextStyle(color: AppColor.textSecondary, fontSize: 13)),
+                ),
+              );
+            }
+            final maxY = data.map((e) => e.count).fold<int>(1, (a, b) => b > a ? b : a).toDouble();
+            return SizedBox(
               height: 200,
               child: BarChart(
                 BarChartData(
-                  barTouchData: BarTouchData(enabled: true),
-                  titlesData: FlTitlesData(
-                    bottomTitles: AxisTitles(
-                      sideTitles: SideTitles(
-                        showTitles: true,
-                        getTitlesWidget: (value, meta) {
-                          final data = controller.currentData;
-                          if (value.toInt() < data.length) {
-                            return Padding(
-                              padding: const EdgeInsets.only(top: 8.0),
-                              child: Text(
-                                data[value.toInt()].period,
-                                style: const TextStyle(fontSize: 10),
-                              ),
-                            );
-                          }
-                          return const Text('');
-                        },
+                  maxY: maxY + (maxY * 0.2),
+                  barTouchData: BarTouchData(
+                    touchTooltipData: BarTouchTooltipData(
+                      getTooltipItem: (group, _, rod, __) => BarTooltipItem(
+                        '${data[group.x].label}\n${rod.toY.toInt()}',
+                        const TextStyle(color: Colors.white, fontSize: 11),
                       ),
                     ),
+                  ),
+                  titlesData: FlTitlesData(
+                    topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                    rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
                     leftTitles: AxisTitles(
                       sideTitles: SideTitles(
                         showTitles: true,
-                        getTitlesWidget: (value, meta) {
-                          return Text(
-                            value.toInt().toString(),
-                            style: const TextStyle(fontSize: 10),
+                        reservedSize: 28,
+                        getTitlesWidget: (v, _) =>
+                            Text(v.toInt().toString(), style: const TextStyle(fontSize: 10, color: Colors.grey)),
+                      ),
+                    ),
+                    bottomTitles: AxisTitles(
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        getTitlesWidget: (v, _) {
+                          final i = v.toInt();
+                          if (i < 0 || i >= data.length) return const SizedBox.shrink();
+                          return Padding(
+                            padding: const EdgeInsets.only(top: 6),
+                            child: Text(data[i].label, style: const TextStyle(fontSize: 10, color: Colors.grey)),
                           );
                         },
                       ),
                     ),
-                    topTitles: const AxisTitles(
-                      sideTitles: SideTitles(showTitles: false),
-                    ),
-                    rightTitles: const AxisTitles(
-                      sideTitles: SideTitles(showTitles: false),
-                    ),
                   ),
-                  gridData: const FlGridData(
-                    show: true,
-                    drawVerticalLine: false,
-                  ),
+                  gridData: const FlGridData(show: true, drawVerticalLine: false),
                   borderData: FlBorderData(show: false),
-                  barGroups: controller.currentData
+                  barGroups: data
                       .asMap()
                       .entries
-                      .map(
-                        (entry) => BarChartGroupData(
-                          x: entry.key,
-                          barRods: [
+                      .map((e) => BarChartGroupData(x: e.key, barRods: [
                             BarChartRodData(
-                              toY: entry.value.violations.toDouble(),
-                              color: Colors.blue,
-                              borderRadius: BorderRadius.circular(4),
-                              width: 16,
+                              toY: e.value.count.toDouble(),
+                              color: const Color(0xFF6366F1),
+                              width: 18,
+                              borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
                             ),
-                          ],
-                        ),
-                      )
+                          ]))
                       .toList(),
                 ),
               ),
-            ),
-          ),
+            );
+          }),
         ],
       ),
     );
   }
 
-  Widget _buildViolationTypesChart() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey[200]!),
-      ),
+  // ── Violation types ──────────────────────────────────────────────────────────
+  Widget _buildViolationTypes() {
+    return _card(
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Violation Types',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black87,
-                ),
-              ),
-              const Icon(Icons.pie_chart, color: Colors.grey, size: 20),
-            ],
-          ),
+          Text('Violation Types',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColor.textPrimary)),
           const SizedBox(height: 16),
-          Obx(
-            () => SizedBox(
-              height: 200,
-              child: PieChart(
-                PieChartData(
-                  sections: controller.violationTypeData
-                      .map(
-                        (data) => PieChartSectionData(
-                          value: data.value.toDouble(),
-                          color: data.color,
-                          radius: 40,
-                          title: '${data.value}',
-                          titleStyle: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
-                      )
-                      .toList(),
-                  centerSpaceRadius: 50,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          Obx(
-            () => GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                crossAxisSpacing: 8,
-                mainAxisSpacing: 8,
-                childAspectRatio: 3,
-              ),
-              itemCount: controller.violationTypeData.length,
-              itemBuilder: (context, index) {
-                final data = controller.violationTypeData[index];
-                return GestureDetector(
-                  onTap: () => controller.showViolationTypeDetails(data),
-                  child: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(8),
-                      color: Colors.grey[50],
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 12,
-                          height: 12,
-                          decoration: BoxDecoration(
-                            color: data.color,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          '${data.name} (${data.value})',
-                          style: const TextStyle(fontSize: 12),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildComplianceTrend() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey[200]!),
-      ),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Violation Trend',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black87,
-                ),
-              ),
-              const Icon(Icons.timeline, color: Colors.red, size: 20),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Obx(
-            () => SizedBox(
-              height: 180,
-              child: LineChart(
-                LineChartData(
-                  gridData: const FlGridData(show: true),
-                  titlesData: FlTitlesData(
-                    bottomTitles: AxisTitles(
-                      sideTitles: SideTitles(
-                        showTitles: true,
-                        getTitlesWidget: (value, meta) {
-                          if (value.toInt() <
-                              controller.complianceTrend.length) {
-                            return Text(
-                              controller.complianceTrend[value.toInt()].week,
-                              style: const TextStyle(fontSize: 10),
-                            );
-                          }
-                          return const Text('');
-                        },
+          Obx(() {
+            final types = controller.typeBreakdown;
+            final total = controller.totalViolations;
+            if (types.isEmpty) {
+              return Text('No data', style: TextStyle(color: AppColor.textSecondary, fontSize: 13));
+            }
+            return Column(
+              children: types.map((t) {
+                final pct = total == 0 ? 0 : ((t.count / total) * 100).round();
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(t.label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+                          Text('${t.count} ($pct%)', style: TextStyle(fontSize: 12, color: AppColor.textSecondary)),
+                        ],
                       ),
-                    ),
-                    leftTitles: AxisTitles(
-                      sideTitles: SideTitles(
-                        showTitles: true,
-                        getTitlesWidget: (value, meta) {
-                          return Text(
-                            value.toInt().toString(),
-                            style: const TextStyle(fontSize: 10),
-                          );
-                        },
+                      const SizedBox(height: 4),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(9999),
+                        child: LinearProgressIndicator(
+                          value: pct / 100,
+                          minHeight: 8,
+                          backgroundColor: AppColor.subtleBg,
+                          valueColor: AlwaysStoppedAnimation(t.color),
+                        ),
                       ),
-                    ),
-                  ),
-                  borderData: FlBorderData(show: false),
-                  lineBarsData: [
-                    LineChartBarData(
-                      spots: controller.complianceTrend
-                          .asMap()
-                          .entries
-                          .map(
-                            (entry) => FlSpot(
-                              entry.key.toDouble(),
-                              entry.value.compliance.toDouble(),
-                            ),
-                          )
-                          .toList(),
-                      isCurved: true,
-                      color: Colors.red,
-                      barWidth: 4,
-                      dotData: const FlDotData(show: true),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // Updated to accept BuildContext parameter
-  Widget _buildZonePerformance(BuildContext context) {
-    final screenWidth =
-        MediaQuery.of(context).size.width - 64; // Calculate available width
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey[200]!),
-      ),
-      child: Column(
-        children: [
-          const Text(
-            'Camera Activity',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: Colors.black87,
-            ),
-          ),
-          const SizedBox(height: 16),
-          Obx(
-            () => Column(
-              children: controller.zonePerformance.map((zone) {
-                return GestureDetector(
-                  onTap: () => controller.showZoneDetails(zone),
-                  child: Container(
-                    padding: const EdgeInsets.all(12),
-                    margin: const EdgeInsets.only(bottom: 8),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12),
-                      color: Colors.grey[50],
-                    ),
-                    child: Column(
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Expanded(
-                              child: Text(
-                                zone.zone,
-                                style: const TextStyle(fontSize: 12),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                            Text(
-                              '${zone.compliance}%',
-                              style: const TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        Container(
-                          height: 6,
-                          decoration: BoxDecoration(
-                            color: Colors.grey[300],
-                            borderRadius: BorderRadius.circular(3),
-                          ),
-                          child: Stack(
-                            children: [
-                              Container(
-                                width: double.infinity,
-                                height: 6,
-                                decoration: BoxDecoration(
-                                  color: Colors.grey[200],
-                                  borderRadius: BorderRadius.circular(3),
-                                ),
-                              ),
-                              Container(
-                                width: screenWidth * (zone.compliance / 100),
-                                height: 6,
-                                decoration: BoxDecoration(
-                                  color: zone.violations == 0
-                                      ? Colors.green
-                                      : zone.compliance >= 50
-                                      ? Colors.red
-                                      : Colors.orange,
-                                  borderRadius: BorderRadius.circular(3),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          zone.violations == 0
-                              ? 'No violations in selected period'
-                              : '${zone.violations} violations • ${zone.compliance}% of site total',
-                          style: const TextStyle(
-                            fontSize: 10,
-                            color: Colors.grey,
-                          ),
-                        ),
-                      ],
-                    ),
+                    ],
                   ),
                 );
               }).toList(),
-            ),
-          ),
+            );
+          }),
         ],
       ),
     );
   }
 
-  // Updated to accept BuildContext parameter
-  Widget _buildAIDetectionPerformance(BuildContext context) {
-    final screenWidth =
-        MediaQuery.of(context).size.width - 64; // Calculate available width
+  // ── Cameras by violations ────────────────────────────────────────────────────
+  Widget _buildCamerasByViolations() {
+    return _card(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Cameras by Violations',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColor.textPrimary)),
+          const SizedBox(height: 16),
+          Obx(() {
+            final cams = controller.topCameras;
+            if (cams.isEmpty) {
+              return Text('No violations in this period', style: TextStyle(color: AppColor.textSecondary, fontSize: 13));
+            }
+            final max = cams.first.count == 0 ? 1 : cams.first.count;
+            return Column(
+              children: cams.map((c) {
+                final pct = c.count / max;
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Row(
+                    children: [
+                      SizedBox(
+                        width: 110,
+                        child: Text(c.name,
+                            maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 13)),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(9999),
+                          child: LinearProgressIndicator(
+                            value: pct,
+                            minHeight: 10,
+                            backgroundColor: AppColor.subtleBg,
+                            valueColor: const AlwaysStoppedAnimation(Color(0xFF6366F1)),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      SizedBox(
+                        width: 24,
+                        child: Text('${c.count}',
+                            textAlign: TextAlign.right,
+                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
+            );
+          }),
+        ],
+      ),
+    );
+  }
 
+  // ── Shared card wrapper ──────────────────────────────────────────────────────
+  Widget _card({required Widget child}) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColor.cardBg,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey[200]!),
+        border: Border.all(color: AppColor.borderColor),
       ),
-      child: Column(
-        children: [
-          const Text(
-            'AI Detection Performance',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: Colors.black87,
-            ),
-          ),
-          const SizedBox(height: 16),
-          Obx(
-            () => _buildAIMetric(
-              'Detection Accuracy',
-              '${controller.detectionAccuracy.value}%',
-              controller.detectionAccuracy.value / 100,
-              Colors.blue,
-              screenWidth,
-            ),
-          ),
-          const SizedBox(height: 16),
-          Obx(
-            () => _buildAIMetric(
-              'False Positive Rate',
-              '${controller.falsePositiveRate.value.toStringAsFixed(1)}%',
-              controller.falsePositiveRate.value / 100,
-              Colors.orange,
-              screenWidth,
-            ),
-          ),
-          const SizedBox(height: 16),
-          Obx(
-            () => _buildAIMetric(
-              'Processing Speed',
-              '${controller.processingFps.value} FPS',
-              1.0,
-              Colors.green,
-              screenWidth,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // Updated to accept screenWidth parameter
-  Widget _buildAIMetric(
-    String label,
-    String value,
-    double percentage,
-    Color color,
-    double screenWidth,
-  ) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(label, style: const TextStyle(fontSize: 12)),
-            Text(
-              value,
-              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        Container(
-          height: 6,
-          decoration: BoxDecoration(
-            color: Colors.grey[200],
-            borderRadius: BorderRadius.circular(3),
-          ),
-          child: Stack(
-            children: [
-              Container(
-                width: screenWidth * percentage,
-                height: 6,
-                decoration: BoxDecoration(
-                  color: color,
-                  borderRadius: BorderRadius.circular(3),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
+      child: child,
     );
   }
 }

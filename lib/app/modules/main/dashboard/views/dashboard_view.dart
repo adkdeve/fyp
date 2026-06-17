@@ -23,36 +23,28 @@ class DashboardView extends GetView<DashboardController> {
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: overlayStyle,
       child: Scaffold(
-        backgroundColor: Colors.grey.shade50,
+        backgroundColor: context.scaffoldBg,
         body: Obx(
           () => SingleChildScrollView(
             child: Column(
               children: [
                 _buildHeader(context),
                 const SizedBox(height: 16),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: _buildStatusCards(),
-                ),
+                Padding(padding: const EdgeInsets.symmetric(horizontal: 16), child: _buildStatusCards()),
                 if (controller.mostRecentViolation != null) ...[
                   const SizedBox(height: 16),
                   Container(
                     margin: const EdgeInsets.symmetric(horizontal: 16),
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.red.shade50,
-                      border: Border(
-                        left: BorderSide(
-                          color: Colors.red.shade500,
-                          width: 4,
-                        ),
-                      ),
+                      color: AppColor.tintedSurface(Colors.red),
+                      border: Border(left: BorderSide(color: Colors.red.shade500, width: 4)),
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        Icon(Icons.error, color: Colors.red.shade500),
+                        Icon(Icons.error, color: AppColor.accentText(Colors.red)),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Column(
@@ -60,26 +52,15 @@ class DashboardView extends GetView<DashboardController> {
                             children: [
                               Text(
                                 "${controller.mostRecentViolation!.type} Violation Detected",
-                                style: TextStyle(
-                                  color: Colors.red.shade800,
-                                  fontWeight: FontWeight.w600,
-                                ),
+                                style: TextStyle(color: AppColor.accentText(Colors.red), fontWeight: FontWeight.w600),
                               ),
                               Text(
                                 "${controller.mostRecentViolation!.zone} - ${controller.mostRecentViolation!.description}",
-                                style: TextStyle(
-                                  color: Colors.red.shade600,
-                                  fontSize: 12,
-                                ),
+                                style: TextStyle(color: AppColor.textSecondary, fontSize: 12),
                               ),
                               Text(
-                                DateFormat(
-                                  'hh:mm a',
-                                ).format(controller.mostRecentViolation!.time),
-                                style: TextStyle(
-                                  color: Colors.red.shade500,
-                                  fontSize: 10,
-                                ),
+                                DateFormat('hh:mm a').format(controller.mostRecentViolation!.time),
+                                style: TextStyle(color: AppColor.textTertiary, fontSize: 10),
                               ),
                             ],
                           ),
@@ -96,14 +77,11 @@ class DashboardView extends GetView<DashboardController> {
                     children: [
                       Row(
                         children: [
-                          const Icon(LucideIcons.video, size: 18),
+                          Icon(LucideIcons.video, size: 18, color: context.textPrimary),
                           5.sbw,
-                          const Text(
+                          Text(
                             "Monitored Cameras",
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: context.textPrimary),
                           ),
                         ],
                       ),
@@ -112,35 +90,24 @@ class DashboardView extends GetView<DashboardController> {
                         Container(
                           width: double.infinity,
                           padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Text(
+                          decoration: BoxDecoration(color: context.cardBg, borderRadius: BorderRadius.circular(12)),
+                          child: Text(
                             'No enabled cameras are being monitored right now.',
-                            style: TextStyle(color: Colors.black54),
+                            style: TextStyle(color: context.textSecondary),
                           ),
                         )
                       else
                         Column(
                           children: controller.cameras.map((camera) {
                             final activeViolations = controller.violations
-                                .where(
-                                  (v) =>
-                                      v.cameraId == camera.id &&
-                                      v.status == ViolationStatus.active,
-                                )
+                                .where((v) => v.cameraId == camera.id && v.status == ViolationStatus.active)
                                 .toList();
                             final hasViolation = activeViolations.isNotEmpty;
-                            final violation = hasViolation
-                                ? activeViolations.first
-                                : null;
+                            final violation = hasViolation ? activeViolations.first : null;
                             final status = camera.status != "online"
                                 ? "critical"
                                 : hasViolation
-                                ? (violation!.severity == ViolationSeverity.high
-                                      ? "critical"
-                                      : "warning")
+                                ? (violation!.severity == ViolationSeverity.high ? "critical" : "warning")
                                 : "safe";
 
                             return Padding(
@@ -176,10 +143,7 @@ class DashboardView extends GetView<DashboardController> {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: const BorderRadius.only(
-          bottomLeft: Radius.circular(32),
-          bottomRight: Radius.circular(32),
-        ),
+        borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(32), bottomRight: Radius.circular(32)),
       ),
       padding: EdgeInsets.fromLTRB(16, topInset + 16, 16, 24),
       child: Column(
@@ -195,31 +159,15 @@ class DashboardView extends GetView<DashboardController> {
                   children: [
                     const Text(
                       "Construction Safety Monitor",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 20,
-                        fontWeight: FontWeight.w600,
-                      ),
+                      style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w600),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       "${controller.currentTime.value.toLocal().toString().split(' ')[0]} • ${TimeOfDay.fromDateTime(controller.currentTime.value).format(context)}",
-                      style: TextStyle(
-                        color: Colors.blue.shade100,
-                        fontSize: 14,
-                      ),
+                      style: TextStyle(color: Colors.blue.shade100, fontSize: 14),
                     ),
                   ],
                 ),
-              ),
-              const SizedBox(width: 12),
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.engineering, color: Colors.white),
               ),
             ],
           ),
@@ -264,6 +212,7 @@ class DashboardView extends GetView<DashboardController> {
           return Column(
             children: [
               _statusCard(
+                context,
                 label: "Safety Coverage",
                 value: "${controller.complianceRate}%",
                 icon: Icons.check_circle,
@@ -271,6 +220,7 @@ class DashboardView extends GetView<DashboardController> {
               ),
               const SizedBox(height: 12),
               _statusCard(
+                context,
                 label: "Open Violations",
                 value: "${controller.activeViolationsCount}",
                 icon: Icons.warning,
@@ -284,6 +234,7 @@ class DashboardView extends GetView<DashboardController> {
           children: [
             Expanded(
               child: _statusCard(
+                context,
                 label: "Safety Coverage",
                 value: "${controller.complianceRate}%",
                 icon: Icons.check_circle,
@@ -293,6 +244,7 @@ class DashboardView extends GetView<DashboardController> {
             const SizedBox(width: 12),
             Expanded(
               child: _statusCard(
+                context,
                 label: "Open Violations",
                 value: "${controller.activeViolationsCount}",
                 icon: Icons.warning,
@@ -305,17 +257,10 @@ class DashboardView extends GetView<DashboardController> {
     );
   }
 
-  Widget _quickStat({
-    required IconData icon,
-    required String label,
-    required String value,
-  }) {
+  Widget _quickStat({required IconData icon, required String label, required String value}) {
     return Container(
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.2),
-        borderRadius: BorderRadius.circular(16),
-      ),
+      decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(16)),
       child: Column(
         children: [
           Row(
@@ -336,18 +281,15 @@ class DashboardView extends GetView<DashboardController> {
           const SizedBox(height: 4),
           Text(
             value,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 20,
-              fontWeight: FontWeight.w600,
-            ),
+            style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w600),
           ),
         ],
       ),
     );
   }
 
-  Widget _statusCard({
+  Widget _statusCard(
+    BuildContext context, {
     required String label,
     required String value,
     required IconData icon,
@@ -357,7 +299,7 @@ class DashboardView extends GetView<DashboardController> {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.cardBg,
         borderRadius: BorderRadius.circular(16),
         border: Border(left: BorderSide(color: color, width: 4)),
         boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4)],
@@ -368,21 +310,14 @@ class DashboardView extends GetView<DashboardController> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                label,
-                style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-              ),
+              Text(label, style: TextStyle(fontSize: 12, color: context.textSecondary)),
               Icon(icon, color: color),
             ],
           ),
           const SizedBox(height: 8),
           Text(
             value,
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w600,
-              color: Colors.grey.shade900,
-            ),
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: context.textPrimary),
           ),
         ],
       ),

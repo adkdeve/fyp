@@ -2,6 +2,8 @@ import 'package:construction_safety/common/widgets/build_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:construction_safety/app/core/extensions/theme_extensions.dart';
+import 'package:construction_safety/common/widgets/app_header.dart';
 import '../../../../data/models/violation_model.dart';
 import '../controllers/violation_detail_controller.dart';
 
@@ -11,14 +13,10 @@ class ViolationDetailView extends GetView<ViolationDetailController> {
   @override
   Widget build(BuildContext context) {
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.dark.copyWith(
-        statusBarIconBrightness: Brightness.dark,
-        statusBarBrightness: Brightness.light,
-        statusBarColor: Colors.transparent,
-      ),
+      value: AppColor.statusBar,
       child: SafeArea(
         child: Scaffold(
-          backgroundColor: Colors.grey[50],
+          backgroundColor: AppColor.scaffoldBg,
           body: Obx(() {
             final violation = controller.selectedViolation.value;
             if (violation == null) {
@@ -31,7 +29,11 @@ class ViolationDetailView extends GetView<ViolationDetailController> {
             return Column(
               children: [
                 // Header
-                _buildHeader(),
+                AppHeader(
+                  title: 'Violation Details',
+                  subtitle: 'ID: ${violation.id}',
+                  showBack: true,
+                ),
                 // Content
                 Expanded(
                   child: SingleChildScrollView(
@@ -60,37 +62,6 @@ class ViolationDetailView extends GetView<ViolationDetailController> {
             );
           }),
         ),
-      ),
-    );
-  }
-
-  Widget _buildHeader() {
-    return Container(
-      color: Colors.white,
-      padding: const EdgeInsets.all(16),
-      child: Row(
-        children: [
-          IconButton(
-            onPressed: () => Get.back(),
-            icon: const Icon(Icons.arrow_back, color: Colors.grey),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Obx(() {
-              final violation = controller.selectedViolation.value;
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Violation Details',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.black87),
-                  ),
-                  Text('ID: ${violation?.id ?? ""}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
-                ],
-              );
-            }),
-          ),
-        ],
       ),
     );
   }
@@ -126,7 +97,7 @@ class ViolationDetailView extends GetView<ViolationDetailController> {
             style: TextStyle(color: config['text'] as Color, fontSize: 18, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 4),
-          Text('Type: ${violation.type.name} Violation', style: const TextStyle(color: Colors.grey, fontSize: 14)),
+          Text('Type: ${violation.type.name} Violation', style: TextStyle(color: AppColor.textSecondary, fontSize: 14)),
         ],
       ),
     );
@@ -140,9 +111,9 @@ class ViolationDetailView extends GetView<ViolationDetailController> {
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColor.cardBg,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey[200]!),
+        border: Border.all(color: AppColor.borderColor),
       ),
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -150,11 +121,11 @@ class ViolationDetailView extends GetView<ViolationDetailController> {
         children: [
           Row(
             children: [
-              Icon(Icons.camera_alt, color: Colors.grey[700]),
+              Icon(Icons.camera_alt, color: AppColor.textSecondary),
               const SizedBox(width: 8),
-              const Text(
+              Text(
                 'Visual Evidence',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.black87),
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColor.textPrimary),
               ),
             ],
           ),
@@ -170,7 +141,7 @@ class ViolationDetailView extends GetView<ViolationDetailController> {
             ),
           ),
           const SizedBox(height: 8),
-          Text(confidenceText, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+          Text(confidenceText, style: TextStyle(fontSize: 12, color: AppColor.textSecondary)),
         ],
       ),
     );
@@ -193,17 +164,17 @@ class ViolationDetailView extends GetView<ViolationDetailController> {
   Widget _buildIncidentInfo(ViolationModel violation) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColor.cardBg,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey[200]!),
+        border: Border.all(color: AppColor.borderColor),
       ),
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Incident Information',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.black87),
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColor.textPrimary),
           ),
           const SizedBox(height: 12),
           Column(
@@ -211,28 +182,28 @@ class ViolationDetailView extends GetView<ViolationDetailController> {
               _buildInfoItem(
                 icon: Icons.location_on,
                 iconColor: Colors.blue,
-                iconBgColor: Colors.blue[100]!,
+                iconBgColor: AppColor.accentBadgeBg(Colors.blue),
                 title: 'Location',
                 value: violation.zone,
               ),
               _buildInfoItem(
                 icon: Icons.access_time,
                 iconColor: Colors.purple,
-                iconBgColor: Colors.purple[100]!,
+                iconBgColor: AppColor.accentBadgeBg(Colors.purple),
                 title: 'Time Detected',
                 value: _formatTime(violation.time),
               ),
               _buildInfoItem(
                 icon: Icons.calendar_today,
                 iconColor: Colors.green,
-                iconBgColor: Colors.green[100]!,
+                iconBgColor: AppColor.accentBadgeBg(Colors.green),
                 title: 'Date',
                 value: _formatDate(violation.time),
               ),
               _buildInfoItem(
                 icon: Icons.camera_alt,
                 iconColor: Colors.orange,
-                iconBgColor: Colors.orange[100]!,
+                iconBgColor: AppColor.accentBadgeBg(Colors.orange),
                 title: 'Camera Source',
                 value: violation.cameraId != null ? 'CAM-${violation.cameraId.toString().padLeft(3, '0')}' : 'Unknown',
               ),
@@ -264,11 +235,11 @@ class ViolationDetailView extends GetView<ViolationDetailController> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                Text(title, style: TextStyle(fontSize: 12, color: AppColor.textSecondary)),
                 const SizedBox(height: 2),
                 Text(
                   value,
-                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Colors.black87),
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: AppColor.textPrimary),
                 ),
               ],
             ),
@@ -281,17 +252,17 @@ class ViolationDetailView extends GetView<ViolationDetailController> {
   Widget _buildRecommendedActions(List<String> actions) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColor.cardBg,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey[200]!),
+        border: Border.all(color: AppColor.borderColor),
       ),
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Recommended Actions',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.black87),
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColor.textPrimary),
           ),
           const SizedBox(height: 12),
           Column(
@@ -305,7 +276,7 @@ class ViolationDetailView extends GetView<ViolationDetailController> {
                         Icon(Icons.check_circle, color: Colors.green[600], size: 16),
                         const SizedBox(width: 8),
                         Expanded(
-                          child: Text(action, style: const TextStyle(fontSize: 14, color: Colors.grey)),
+                          child: Text(action, style: TextStyle(fontSize: 14, color: AppColor.textSecondary)),
                         ),
                       ],
                     ),
@@ -330,7 +301,7 @@ class ViolationDetailView extends GetView<ViolationDetailController> {
                 label: const Text('Download Report'),
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                  side: BorderSide(color: Colors.grey[300]!),
+                  side: BorderSide(color: AppColor.borderColor),
                 ),
               ),
             ),
@@ -342,7 +313,7 @@ class ViolationDetailView extends GetView<ViolationDetailController> {
                 label: const Text('Share'),
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                  side: BorderSide(color: Colors.grey[300]!),
+                  side: BorderSide(color: AppColor.borderColor),
                 ),
               ),
             ),

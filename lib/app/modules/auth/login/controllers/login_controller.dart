@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:construction_safety/utils/helpers/snackbar.dart';
 import '../../../../data/services/auth_service.dart';
 import '../../../../data/services/firestore_service.dart';
 import '../../../../routes/app_pages.dart';
@@ -42,14 +43,7 @@ class LoginController extends GetxController {
       Get.offAllNamed(AppPages.INITIAL);
     } catch (e) {
       print('Login error: $e');
-      Get.snackbar(
-        'Login Failed',
-        e.toString(),
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Get.theme.colorScheme.error.withOpacity(0.9),
-        colorText: Get.theme.colorScheme.onError,
-        duration: const Duration(seconds: 4),
-      );
+      SnackBarUtils.showError(e.toString(), title: 'Login Failed', duration: 4);
     } finally {
       if (!isClosed) {
         isLoading.value = false;
