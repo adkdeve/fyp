@@ -1,0 +1,15 @@
+tracker_type: bytetrack
+
+# High track_buffer: keep a lost track alive for 60 frames (~2 s at 30 fps).
+# This means a person who turns sideways, is briefly occluded, or dips below
+# the detection threshold will regain their original ID when they reappear,
+# preventing the "new ID → Unknown" cycle.
+track_buffer: 60
+
+# Thresholds — kept permissive so low-confidence detections still associate
+# back to existing tracks rather than spawning new ones.
+track_high_thresh: 0.25
+track_low_thresh: 0.10
+new_track_thresh: 0.25
+match_thresh: 0.85
+fuse_score: True

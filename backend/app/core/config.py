@@ -1,0 +1,28 @@
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        extra="ignore",
+        protected_namespaces=("settings_",),
+    )
+
+    jwt_secret: str
+    jwt_algorithm: str = "HS256"
+    access_token_expire_minutes: int = 60
+    refresh_token_expire_days: int = 14
+    cors_origins: str = "http://localhost:3000"
+    media_dir: str = "./media"
+    # ML service URL — inference is fully delegated to the separate ML service
+    ml_api_url: str = "http://localhost:8001"
+    fps_target: int = 15
+    confidence_threshold: float = 0.35
+    firebase_project_id: str = "fyp-backend-fa22"
+
+    @property
+    def cors_origin_list(self) -> list[str]:
+        return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
+
+
+settings = Settings()
