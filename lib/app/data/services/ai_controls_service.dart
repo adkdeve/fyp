@@ -1,9 +1,11 @@
 import 'dart:convert';
 
+import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/config/app_config.dart';
+import 'connectivity_service.dart';
 
 /// AI Detection Controls API client — mirrors the web `mlApi`.
 ///
@@ -20,6 +22,10 @@ class AiControlsService {
   static const String _prefsKey = 'ml_detection_prefs';
 
   String get _base => '${AppConfig.baseUrl}ai-controls';
+
+  /// Net available hai ya nahi — offline mein bekaar HTTP calls avoid karne ke liye.
+  bool get _online =>
+      !Get.isRegistered<ConnectivityService>() || ConnectivityService.to.online;
 
   // ── Local preferences (shared_preferences, web localStorage ke barabar) ────
   Future<DetectionPrefs> loadPrefs() async {
@@ -47,6 +53,7 @@ class AiControlsService {
   /// Returns the backend's active model map, or null if unreachable.
   /// Map keys: `helmet`, `firesmoke`.
   Future<Map<String, bool>?> getStatus() async {
+    if (!_online) return null;
     try {
       final res = await http
           .get(Uri.parse('$_base/status'))
@@ -70,6 +77,7 @@ class AiControlsService {
   Future<bool> toggleFire(bool active) => _toggle('firesmoke', active);
 
   Future<bool> _toggle(String model, bool active) async {
+    if (!_online) return false;
     try {
       final res = await http
           .post(
@@ -86,6 +94,7 @@ class AiControlsService {
 
   /// Re-apply saved prefs to the backend (call on Settings open, like web).
   Future<void> applyPrefs(DetectionPrefs prefs) async {
+    if (!_online) return;
     try {
       await http
           .post(

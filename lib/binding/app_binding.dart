@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:logger/logger.dart';
 import '../app/data/repositories/repository.dart';
 import '../app/data/services/auth_service.dart';
+import '../app/data/services/connectivity_service.dart';
 import '../app/data/services/firestore_service.dart';
 import '../app/data/services/safety_api_service.dart';
 import '../app/data/services/websocket_service.dart';
@@ -12,6 +13,7 @@ class AppBinding extends Bindings {
   @override
   void dependencies() {
     Get.put<AuthService>(AuthService(), permanent: true);
+    Get.put<ConnectivityService>(ConnectivityService(), permanent: true);
     Get.put<FirestoreService>(FirestoreService(), permanent: true);
     Get.put<SafetyApiService>(SafetyApiService(), permanent: true);
     Get.put<WebSocketService>(WebSocketService(), permanent: true);

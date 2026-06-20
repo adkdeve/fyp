@@ -13,7 +13,7 @@ class NetworkApiService extends BaseApiServices {
   Future postApiResponse(data, url) async {
     try {
       final connectivityResult = await (Connectivity().checkConnectivity());
-      if (connectivityResult != ConnectivityResult.none) {
+      if (connectivityResult.any((r) => r != ConnectivityResult.none)) {
         var response = await http
             .post(Uri.parse(url), body: data)
             .timeout(const Duration(seconds: 15));
@@ -35,7 +35,7 @@ class NetworkApiService extends BaseApiServices {
   Future postApiResponseWithToken(data, url, token) async {
     try {
       final connectivityResult = await (Connectivity().checkConnectivity());
-      if (connectivityResult != ConnectivityResult.none) {
+      if (connectivityResult.any((r) => r != ConnectivityResult.none)) {
         var response =
         await http.post(Uri.parse(url), body: jsonEncode(data), headers: {
           'Content-Type': 'application/json',
@@ -65,7 +65,7 @@ class NetworkApiService extends BaseApiServices {
   Future getApiResponseWithToken(url, token) async {
     try {
       final connectivityResult = await (Connectivity().checkConnectivity());
-      if (connectivityResult != ConnectivityResult.none) {
+      if (connectivityResult.any((r) => r != ConnectivityResult.none)) {
         var response = await http.get(Uri.parse(url), headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
@@ -96,7 +96,7 @@ class NetworkApiService extends BaseApiServices {
   Future postApiResponseProfile(data, url, token) async {
     try {
       final connectivityResult = await (Connectivity().checkConnectivity());
-      if (connectivityResult != ConnectivityResult.none) {
+      if (connectivityResult.any((r) => r != ConnectivityResult.none)) {
         if (data['image'].toString().isEmpty) {
           final finalData = jsonEncode(data);
           var response = await http
@@ -165,7 +165,7 @@ class NetworkApiService extends BaseApiServices {
     try {
       final connectivityResult = await Connectivity().checkConnectivity();
 
-      if (connectivityResult != ConnectivityResult.none) {
+      if (connectivityResult.any((r) => r != ConnectivityResult.none)) {
         final response = await http.delete(
           Uri.parse(url),
           headers: {
@@ -194,7 +194,7 @@ class NetworkApiService extends BaseApiServices {
   Future uploadResumeFile(File file, String url, String token) async {
     try {
       final connectivityResult = await (Connectivity().checkConnectivity());
-      if (connectivityResult != ConnectivityResult.none) {
+      if (connectivityResult.any((r) => r != ConnectivityResult.none)) {
         var request = http.MultipartRequest('POST', Uri.parse(url));
 
         // Add the file

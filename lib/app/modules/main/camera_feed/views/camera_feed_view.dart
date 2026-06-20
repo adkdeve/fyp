@@ -553,14 +553,14 @@ class CameraFeedView extends GetView<CameraFeedController> {
               return Text(msg, style: const TextStyle(color: Color(0xFFAAAAAA), fontSize: 12));
             }),
             const SizedBox(height: 10),
-            Row(
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              crossAxisAlignment: WrapCrossAlignment.center,
               children: [
                 _zoneToolBtn(Icons.undo, 'Undo', controller.undoZonePoint),
-                const SizedBox(width: 8),
                 _zoneToolBtn(Icons.clear, 'Clear', controller.clearZonePoints),
-                const SizedBox(width: 8),
                 _zoneToolBtn(Icons.close, 'Cancel', controller.cancelDrawingZone),
-                const Spacer(),
                 Obx(
                   () => ElevatedButton.icon(
                     onPressed: controller.isZoneSaving.value ? null : controller.saveZone,

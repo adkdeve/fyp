@@ -8,6 +8,7 @@ import 'package:construction_safety/utils/helpers/snackbar.dart';
 import '../../../../core/values/apis_url.dart';
 import '../../../../data/models/camera_model.dart';
 import '../../../../data/services/auth_service.dart';
+import '../../../../data/services/connectivity_service.dart';
 import '../../../../data/services/firestore_service.dart';
 import '../../camera_feed/bindings/camera_feed_binding.dart';
 import '../../camera_feed/views/camera_feed_view.dart';
@@ -87,6 +88,13 @@ class CameraManagementController extends GetxController {
   }
 
   Future<void> toggleStatus(dynamic cameraId) async {
+    if (!ConnectivityService.to.online) {
+      SnackBarUtils.showError(
+        'You need an internet connection to start or stop a camera.',
+        title: 'No Connection',
+      );
+      return;
+    }
     final id = cameraId.toString();
     // Firebase IDs string hote hain — toString se compare karo (int bug fix)
     final i = cameras.indexWhere((c) => c.id.toString() == id);

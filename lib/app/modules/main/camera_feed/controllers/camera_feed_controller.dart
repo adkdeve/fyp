@@ -11,9 +11,11 @@ import 'package:construction_safety/utils/helpers/snackbar.dart';
 import '../../../../core/values/apis_url.dart';
 import '../../../../data/models/camera_model.dart';
 import '../../../../data/services/auth_service.dart';
+import '../../../../data/services/connectivity_service.dart';
 
 class CameraFeedController extends GetxController {
   final AuthService _auth = Get.find<AuthService>();
+  final ConnectivityService _connectivity = ConnectivityService.to;
 
   final zoom = 1.0.obs;
   final selectedCamera = Rxn<CameraModel>();
@@ -30,6 +32,7 @@ class CameraFeedController extends GetxController {
 
   Timer? _clockTimer;
   Timer? _frameTimer;
+  Worker? _connWorker;
   String? _token;
   final _client = http.Client();
   bool _fetching = false;
@@ -57,6 +60,16 @@ class CameraFeedController extends GetxController {
     _updateTime();
     _initStream();
     _loadZone();
+
+    // Net jaaye to frame polling rok do (bekaar requests na hon), wapas aaye to resume.
+    _connWorker = ever<bool>(_connectivity.isOnline, (online) {
+      if (online) {
+        if (_frameTimer == null || !_frameTimer!.isActive) _startFramePolling();
+      } else {
+        _frameTimer?.cancel();
+        streamError.value = true;
+      }
+    });
   }
 
   void _updateTime() {
@@ -73,6 +86,7 @@ class CameraFeedController extends GetxController {
   }
 
   void _startFramePolling() {
+    _frameTimer?.cancel(); // double polling se bachne ke liye
     final camera = selectedCamera.value;
     final camId = camera?.id;
     if (camId == null) return;
@@ -93,6 +107,7 @@ class CameraFeedController extends GetxController {
 
   Future<void> _fetchFrame(dynamic cameraId) async {
     if (_fetching) return;
+    if (!_connectivity.online) return; // net nahi to request mat bhejo
     _fetching = true;
     try {
       final url = Uri.parse(ApisUrl.streamFrame(cameraId));
@@ -224,6 +239,7 @@ class CameraFeedController extends GetxController {
   Future<void> _loadZone() async {
     final id = selectedCamera.value?.id;
     if (id == null) return;
+    if (!_connectivity.online) return;
     try {
       final res = await _client
           .get(Uri.parse(ApisUrl.safeZoneGet(id)), headers: {'bypass-tunnel-reminder': 'true'})
@@ -250,6 +266,7 @@ class CameraFeedController extends GetxController {
 
   void startDrawingZone() {
     zoom.value = 1.0; // 1x par draw karo taake coords frame se match karein
+    zonePoints.clear(); // Purane loaded points hata do — fresh drawing shuru ho
     isDrawingZone.value = true;
   }
 
@@ -277,12 +294,18 @@ class CameraFeedController extends GetxController {
       SnackBarUtils.showError('At least 3 points needed to define a zone.', title: 'Safe Zone');
       return;
     }
+    if (!_connectivity.online) {
+      SnackBarUtils.showError('No internet connection. Try again when you are back online.', title: 'Safe Zone');
+      return;
+    }
     isZoneSaving.value = true;
     try {
+      final pointsList = zonePoints.map((p) => {'x': p.dx, 'y': p.dy}).toList();
       final body = jsonEncode({
         'camera_id': id.toString(),
-        'points': zonePoints.map((p) => {'x': p.dx, 'y': p.dy}).toList(),
+        'points': pointsList,
       });
+      print('🔵 SaveZone: camera_id=${id.toString()}, points=${pointsList.length}, body=$body');
       final res = await _client
           .post(
             Uri.parse(ApisUrl.safeZoneSet),
@@ -290,6 +313,7 @@ class CameraFeedController extends GetxController {
             body: body,
           )
           .timeout(const Duration(seconds: 12));
+      print('🔵 SaveZone response: ${res.statusCode} — ${res.body}');
       if (res.statusCode == 200) {
         isDrawingZone.value = false;
         SnackBarUtils.showSnackBar(
@@ -297,9 +321,11 @@ class CameraFeedController extends GetxController {
           title: 'Safe Zone Set',
         );
       } else {
-        SnackBarUtils.showError('Server returned ${res.statusCode}', title: 'Safe Zone Failed');
+        print('❌ SaveZone error: ${res.statusCode} — ${res.body}');
+        SnackBarUtils.showError('Server returned ${res.statusCode}: ${res.body}', title: 'Safe Zone Failed');
       }
     } catch (e) {
+      print('❌ SaveZone exception: $e');
       SnackBarUtils.showError(e.toString(), title: 'Safe Zone Failed');
     } finally {
       isZoneSaving.value = false;
@@ -310,6 +336,10 @@ class CameraFeedController extends GetxController {
   Future<void> clearZone() async {
     final id = selectedCamera.value?.id;
     if (id == null) return;
+    if (!_connectivity.online) {
+      SnackBarUtils.showError('No internet connection. Try again when you are back online.', title: 'Safe Zone');
+      return;
+    }
     try {
       await _client
           .delete(Uri.parse(ApisUrl.safeZoneClear(id)), headers: {'bypass-tunnel-reminder': 'true'})
@@ -328,6 +358,7 @@ class CameraFeedController extends GetxController {
   void onClose() {
     _clockTimer?.cancel();
     _frameTimer?.cancel();
+    _connWorker?.dispose();
     _client.close();
     // Agar fullscreen mein chhod kar gaye to portrait restore kar do
     _exitFullscreen();
